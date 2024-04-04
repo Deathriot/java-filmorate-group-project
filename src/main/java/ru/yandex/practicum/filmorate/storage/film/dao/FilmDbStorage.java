@@ -220,6 +220,42 @@ public class FilmDbStorage implements FilmStorage {
                 .orElseThrow(() -> new NotFoundException(String.format("No such film with this id:%s.", id)));
     }
 
+    @Override
+    public Collection<Film> getUserRecommendations(Integer userId) {
+        Collection<Film> films = new ArrayList<>();
+
+        // 1) Найти пользователей с максимальным количеством пересечения по лайкам.
+        String query1 = "SELECT uf2.user_id " +
+                "FROM user_film uf1 " +
+                "JOIN user_film uf2 ON uf1.film_id = uf2.film_id AND uf1.user_id <> uf2.user_id " +
+                "WHERE uf1.user_id = ? " +
+                "GROUP BY uf1.user_id, uf2.user_id " +
+                "ORDER BY COUNT(*) DESC";
+
+        // 2) Найдем все фильмы, который лайкнул пользователь
+        String query2 = "SELECT film_id FROM user_film WHERE user_id = ?";
+
+        // 3) Рекомендовать фильмы, которым поставил лайк пользователь с похожими вкусами, а тот, для кого
+        // составляется рекомендация, ещё не поставил.
+        String generalQuery = "SELECT f.film_id, " +
+                "f.title, " +
+                "f.description, " +
+                "f.release_date, " +
+                "f.duration, " +
+                "r.rating_id, " +
+                "r.rating_name " +
+                "FROM user_film uf " +
+                "JOIN films f ON f.film_id = uf.film_id " +
+                "JOIN rating r ON f.rating = r.rating_id " +
+                "WHERE uf.user_id IN (" + query1 + ") " +
+                "AND uf.film_id NOT IN (" + query2 + ") " +
+                "GROUP BY f.film_id " +
+                "ORDER BY COUNT(f.film_id) DESC";
+
+        films = jdbcTemplate.query(generalQuery, (rs, rowNum) -> makeFilm(rs), userId, userId);
+        return films;
+    }
+
     private Film makeFilm(ResultSet rs) throws SQLException {
         Integer id = rs.getInt("FILM_ID");
         String sqlGenre = "SELECT * FROM GENRE WHERE GENRE_ID IN (SELECT GENRE_ID FROM FILM_GENRE WHERE FILM_ID=?);";
