@@ -5,17 +5,20 @@ import org.springframework.context.annotation.Primary;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.simple.SimpleJdbcInsert;
 import org.springframework.stereotype.Component;
+import ru.yandex.practicum.filmorate.event.Events;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.model.User;
+import ru.yandex.practicum.filmorate.model.event.Event;
 import ru.yandex.practicum.filmorate.storage.user.UserStorage;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDate;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
+
+import static ru.yandex.practicum.filmorate.model.event.EventOperation.ADD;
+import static ru.yandex.practicum.filmorate.model.event.EventOperation.REMOVE;
+import static ru.yandex.practicum.filmorate.model.event.EventType.FRIEND;
 
 @Component
 @Slf4j
@@ -87,6 +90,7 @@ public class UserDbStorage implements UserStorage {
         checkUserExist(friendId);
         String sql = "INSERT INTO FRIENDS (USER_ID, FRIEND_ID) VALUES(?, ?);";
         jdbcTemplate.update(sql, id, friendId);
+        Events.addEvent(jdbcTemplate, FRIEND, ADD, id, friendId);
         log.info("User{} added a friend{}.", getUserById(id), getUserById(friendId));
     }
 
@@ -98,6 +102,7 @@ public class UserDbStorage implements UserStorage {
         User friend = getUserById(friendId);
         String sql = "DELETE FROM FRIENDS WHERE USER_ID=? AND FRIEND_ID=?;";
         jdbcTemplate.update(sql, id, friendId);
+        Events.addEvent(jdbcTemplate, FRIEND, REMOVE, id, friendId);
         log.info("User{} added a friend{}.", user, friend);
     }
 
@@ -134,6 +139,13 @@ public class UserDbStorage implements UserStorage {
         Optional.ofNullable(jdbcTemplate.queryForObject(sqlQuery, Integer.class, id))
                 .filter(count -> count == 1)
                 .orElseThrow(() -> new NotFoundException(String.format("No such user with this id:%s.", id)));
+    }
+
+    @Override
+    public List<Event> getEventFeed(Integer userId) {
+        checkUserExist(userId);
+        String sqlQuery = "SELECT * FROM FEEDS WHERE USER_ID=?;";
+        return jdbcTemplate.query(sqlQuery, Events::mapRowToEvent, userId);
     }
 
     private User makeUser(ResultSet rs) throws SQLException {

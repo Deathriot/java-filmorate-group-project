@@ -8,6 +8,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.simple.SimpleJdbcInsert;
 import org.springframework.jdbc.support.rowset.SqlRowSet;
 import org.springframework.stereotype.Component;
+import ru.yandex.practicum.filmorate.event.Events;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.model.Director;
 import ru.yandex.practicum.filmorate.model.Film;
@@ -26,6 +27,10 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDate;
 import java.util.*;
+
+import static ru.yandex.practicum.filmorate.model.event.EventOperation.ADD;
+import static ru.yandex.practicum.filmorate.model.event.EventOperation.REMOVE;
+import static ru.yandex.practicum.filmorate.model.event.EventType.LIKE;
 
 @Component
 @Slf4j
@@ -129,6 +134,7 @@ public class FilmDbStorage implements FilmStorage {
         userStorage.checkUserExist(userId);
         String sql = "INSERT INTO USER_FILM (USER_ID, FILM_ID) VALUES(?, ?);";
         jdbcTemplate.update(sql, userId, filmId);
+        Events.addEvent(jdbcTemplate, LIKE, ADD, filmId, userId);
         log.info("Like added to film with id={}.", filmId);
     }
 
@@ -138,7 +144,8 @@ public class FilmDbStorage implements FilmStorage {
         userStorage.checkUserExist(userId);
         String sql = "DELETE FROM USER_FILM WHERE FILM_ID=? AND USER_ID=?;";
         jdbcTemplate.update(sql, filmId, userId);
-        log.info("Like remove.");
+        Events.addEvent(jdbcTemplate, LIKE, REMOVE, filmId, userId);
+        log.info("Like removed from film with id={}.", filmId);
     }
 
     @Override
@@ -222,8 +229,6 @@ public class FilmDbStorage implements FilmStorage {
 
     @Override
     public Collection<Film> getUserRecommendations(Integer userId) {
-        Collection<Film> films = new ArrayList<>();
-
         // 1) Найти пользователей с максимальным количеством пересечения по лайкам.
         String query1 = "SELECT uf2.user_id " +
                 "FROM user_film uf1 " +
@@ -252,8 +257,7 @@ public class FilmDbStorage implements FilmStorage {
                 "GROUP BY f.film_id " +
                 "ORDER BY COUNT(f.film_id) DESC";
 
-        films = jdbcTemplate.query(generalQuery, (rs, rowNum) -> makeFilm(rs), userId, userId);
-        return films;
+        return jdbcTemplate.query(generalQuery, (rs, rowNum) -> makeFilm(rs), userId, userId);
     }
 
     private Film makeFilm(ResultSet rs) throws SQLException {
