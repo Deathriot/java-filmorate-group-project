@@ -29,6 +29,17 @@ public class FilmServiceImpl implements FilmService {
     }
 
     @Override
+    public Collection<Film> getPopular(Integer count, Integer genreId, String year) {
+        if (year == null) {
+            return filmStorage.getPopularByGenre(count, genreId);
+        } else if (genreId == null) {
+            return filmStorage.getPopularByYear(count, year);
+        } else {
+            return filmStorage.getPopularByGenreAndYear(count, genreId, year);
+        }
+    }
+
+    @Override
     public Film addFilm(Film film) {
         return filmStorage.addFilm(film);
     }

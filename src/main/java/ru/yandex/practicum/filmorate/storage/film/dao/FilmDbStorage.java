@@ -142,6 +142,63 @@ public class FilmDbStorage implements FilmStorage {
     }
 
     @Override
+    public Collection<Film> getPopularByGenre(Integer count, Integer genreId) {
+        String sql = "SELECT F.*,\n" +
+                "R.*,\n" +
+                "FG.*,\n" +
+                "COUNT(UF.FILM_ID) AS LIKES\n" +
+                "FROM FILMS AS F\n" +
+                "LEFT JOIN RATING AS R ON R.RATING_ID = F.RATING\n" +
+                "LEFT JOIN USER_FILM AS UF ON F.FILM_ID = UF.FILM_ID\n" +
+                "LEFT JOIN FILM_GENRE AS FG ON F.FILM_ID = FG.FILM_ID \n" +
+                "LEFT JOIN GENRE AS G ON FG.GENRE_ID = G.GENRE_ID\n" +
+                "WHERE G.GENRE_ID = ?\n" +
+                "GROUP BY F.FILM_ID\n" +
+                "ORDER BY LIKES DESC\n" +
+                "LIMIT ?";
+        Collection<Film> films = jdbcTemplate.query(sql, (rs, rowNum) -> makeFilm(rs), genreId, count);
+        log.info("Get top films by GENRE: {}.", films.size());
+        return films;
+    }
+
+    @Override
+    public Collection<Film> getPopularByYear(Integer count, String year) {
+        String sql = "SELECT F.*,\n" +
+                "R.*,\n" +
+                "COUNT(UF.FILM_ID) AS LIKES\n" +
+                "FROM FILMS AS F\n" +
+                "LEFT JOIN RATING AS R ON R.RATING_ID = F.RATING\n" +
+                "LEFT JOIN USER_FILM AS UF ON F.FILM_ID = UF.FILM_ID\n" +
+                "WHERE EXTRACT(YEAR FROM CAST(F.RELEASE_DATE AS date)) = ?\n" +
+                "GROUP BY F.FILM_ID\n" +
+                "ORDER BY LIKES DESC\n" +
+                "LIMIT ?";
+        Collection<Film> films = jdbcTemplate.query(sql, (rs, rowNum) -> makeFilm(rs), year, count);
+        log.info("Get top films by YEAR: {}.", films.size());
+        return films;
+    }
+
+    @Override
+    public Collection<Film> getPopularByGenreAndYear(Integer count, Integer genreId, String year) {
+        String sql = "SELECT F.*,\n" +
+                "R.*,\n" +
+                "FG.*,\n" +
+                "COUNT(UF.FILM_ID) AS LIKES\n" +
+                "FROM FILMS AS F\n" +
+                "LEFT JOIN RATING AS R ON R.RATING_ID = F.RATING\n" +
+                "LEFT JOIN USER_FILM AS UF ON F.FILM_ID = UF.FILM_ID\n" +
+                "LEFT JOIN FILM_GENRE AS FG ON F.FILM_ID = FG.FILM_ID \n" +
+                "LEFT JOIN GENRE AS G ON FG.GENRE_ID = G.GENRE_ID\n" +
+                "WHERE G.GENRE_ID = ? AND EXTRACT(YEAR FROM CAST(F.RELEASE_DATE AS date)) = ?\n" +
+                "GROUP BY F.FILM_ID\n" +
+                "ORDER BY LIKES DESC\n" +
+                "LIMIT ?";
+        Collection<Film> films = jdbcTemplate.query(sql, (rs, rowNum) -> makeFilm(rs), genreId, year, count);
+        log.info("Get top films by GENRE and YEAR: {}.", films.size());
+        return films;
+    }
+
+    @Override
     public void checkFilmExist(Integer id) {
         String sqlQuery = "SELECT COUNT(*) FROM FILMS WHERE FILM_ID=? ";
         Optional.ofNullable(jdbcTemplate.queryForObject(sqlQuery, Integer.class, id))
