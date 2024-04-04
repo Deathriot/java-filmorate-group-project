@@ -5,6 +5,7 @@ import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.storage.film.FilmStorage;
+import ru.yandex.practicum.filmorate.model.event.Event;
 import ru.yandex.practicum.filmorate.storage.user.UserStorage;
 
 import java.util.Collection;
@@ -63,5 +64,10 @@ public class UserServiceImpl implements UserService {
     @Override
     public Collection<Film> getUserRecommendations(Integer userId) {
         return filmStorage.getUserRecommendations(userId);
+    }
+
+    @Override
+    public Collection<Event> getEventFeed(Integer userId) {
+        return userStorage.getEventFeed(userId);
     }
 }
