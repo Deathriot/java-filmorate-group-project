@@ -253,6 +253,24 @@ public class FilmDbStorage implements FilmStorage {
         return jdbcTemplate.query(generalQuery, (rs, rowNum) -> makeFilm(rs), userId, userId);
     }
 
+    @Override
+    public Collection<Film> commonFilms(Integer userId, Integer friendId) {
+        Collection<Film> commonFilms = new ArrayList<>();
+        String query = "SELECT f.*, " +
+                "r.rating_id, " +
+                "r.rating_name " +
+                "FROM FILMS f " +
+                "JOIN USER_FILM uf ON f.film_id = uf.film_id " +
+                "JOIN rating r ON f.rating = r.rating_id " +
+                "WHERE uf.user_id IN (?, ?) " +
+                "GROUP BY f.film_id " +
+                "HAVING COUNT(DISTINCT uf.user_id) = 2 " +
+                "ORDER BY COUNT(*) DESC";
+
+        commonFilms = jdbcTemplate.query(query, (rs, rowNum) -> makeFilm(rs), userId, friendId);
+        return commonFilms;
+    }
+
     private Film makeFilm(ResultSet rs) throws SQLException {
         Integer id = rs.getInt("FILM_ID");
         String sqlGenre = "SELECT * FROM GENRE WHERE GENRE_ID IN (SELECT GENRE_ID FROM FILM_GENRE WHERE FILM_ID=?);";
