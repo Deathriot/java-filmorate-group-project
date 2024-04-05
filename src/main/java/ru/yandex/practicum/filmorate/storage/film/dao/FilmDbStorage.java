@@ -10,6 +10,7 @@ import org.springframework.stereotype.Component;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.Genre;
+import ru.yandex.practicum.filmorate.storage.director.DirectorStorage;
 import ru.yandex.practicum.filmorate.storage.film.FilmStorage;
 import ru.yandex.practicum.filmorate.storage.genre.GenreStorage;
 import ru.yandex.practicum.filmorate.storage.genre.dao.GenreDbStorage;
@@ -33,16 +34,19 @@ public class FilmDbStorage implements FilmStorage {
     private final UserStorage userStorage;
     private final MpaStorage mpaStorage;
     private final GenreStorage genreStorage;
+    private final DirectorStorage directorStorage;
 
     @Autowired
     public FilmDbStorage(JdbcTemplate jdbcTemplate,
                          UserDbStorage userStorage,
                          MpaDbStorage mpaStorage,
-                         GenreDbStorage genreStorage) {
+                         GenreDbStorage genreStorage,
+                         DirectorStorage directorStorage) {
         this.jdbcTemplate = jdbcTemplate;
         this.userStorage = userStorage;
         this.mpaStorage = mpaStorage;
         this.genreStorage = genreStorage;
+        this.directorStorage = directorStorage;
     }
 
     @Override
@@ -206,6 +210,42 @@ public class FilmDbStorage implements FilmStorage {
                 .orElseThrow(() -> new NotFoundException(String.format("No such film with this id:%s.", id)));
     }
 
+    @Override
+    public Collection<Film> getUserRecommendations(Integer userId) {
+        Collection<Film> films = new ArrayList<>();
+
+        // 1) Найти пользователей с максимальным количеством пересечения по лайкам.
+        String query1 = "SELECT uf2.user_id " +
+                "FROM user_film uf1 " +
+                "JOIN user_film uf2 ON uf1.film_id = uf2.film_id AND uf1.user_id <> uf2.user_id " +
+                "WHERE uf1.user_id = ? " +
+                "GROUP BY uf1.user_id, uf2.user_id " +
+                "ORDER BY COUNT(*) DESC";
+
+        // 2) Найдем все фильмы, который лайкнул пользователь
+        String query2 = "SELECT film_id FROM user_film WHERE user_id = ?";
+
+        // 3) Рекомендовать фильмы, которым поставил лайк пользователь с похожими вкусами, а тот, для кого
+        // составляется рекомендация, ещё не поставил.
+        String generalQuery = "SELECT f.film_id, " +
+                "f.title, " +
+                "f.description, " +
+                "f.release_date, " +
+                "f.duration, " +
+                "r.rating_id, " +
+                "r.rating_name " +
+                "FROM user_film uf " +
+                "JOIN films f ON f.film_id = uf.film_id " +
+                "JOIN rating r ON f.rating = r.rating_id " +
+                "WHERE uf.user_id IN (" + query1 + ") " +
+                "AND uf.film_id NOT IN (" + query2 + ") " +
+                "GROUP BY f.film_id " +
+                "ORDER BY COUNT(f.film_id) DESC";
+
+        films = jdbcTemplate.query(generalQuery, (rs, rowNum) -> makeFilm(rs), userId, userId);
+        return films;
+    }
+
     private Film makeFilm(ResultSet rs) throws SQLException {
         Integer id = rs.getInt("FILM_ID");
         String sqlGenre = "SELECT * FROM GENRE WHERE GENRE_ID IN (SELECT GENRE_ID FROM FILM_GENRE WHERE FILM_ID=?);";
@@ -251,5 +291,20 @@ public class FilmDbStorage implements FilmStorage {
         values.put("DURATION", film.getDuration());
         values.put("RATING", film.getMpa().getId());
         return values;
+    }
+
+    @Override
+    public List<Film> getByDirector(int id, String sortBy) {
+        String sql = "SELECT f.* FROM films f " +
+                "JOIN film_director fd ON f.film_id = fd.film_id " +
+                "WHERE fd.director_id =? ";
+
+        if (sortBy.equals("year")) {
+            sql += "ORDER BY f.release_date ASC";
+        } else if (sortBy.equals("likes")) {
+            sql += "ORDER BY (SELECT COUNT(*) FROM user_film uf WHERE uf.film_id = f.film_id) DESC";
+        }
+
+        return jdbcTemplate.query(sql, (rs, rowNum) -> makeFilm(rs), id);
     }
 }

@@ -1,17 +1,24 @@
 package ru.yandex.practicum.filmorate.service.film;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import ru.yandex.practicum.filmorate.model.Director;
 import ru.yandex.practicum.filmorate.model.Film;
+import ru.yandex.practicum.filmorate.storage.director.DirectorStorage;
 import ru.yandex.practicum.filmorate.storage.film.FilmStorage;
 
 import java.util.Collection;
+import java.util.List;
+import java.util.NoSuchElementException;
 
 @Service
+@Slf4j
 @RequiredArgsConstructor
 public class FilmServiceImpl implements FilmService {
 
     private final FilmStorage filmStorage;
+    private final DirectorStorage directorStorage;
 
     @Override
     public Collection<Film> getAllFilms() {
@@ -41,11 +48,13 @@ public class FilmServiceImpl implements FilmService {
 
     @Override
     public Film addFilm(Film film) {
+        setDirectors(film);
         return filmStorage.addFilm(film);
     }
 
     @Override
     public Film updateFilm(Film film) {
+        setDirectors(film);
         return filmStorage.updateFilm(film);
     }
 
@@ -62,5 +71,29 @@ public class FilmServiceImpl implements FilmService {
     @Override
     public void deleteLike(Integer id, Integer userId) {
         filmStorage.deleteLike(id, userId);
+    }
+
+    private void setDirectors(Film film) {
+        try {
+            if (film.getDirectors() != null) {
+                List<Integer> directorsInt = film.directorToInt();
+                List<Director> directors = directorStorage.existDirector(directorsInt);
+                if (directorsInt.size() != directors.size())
+                    throw new NoSuchElementException("Переданы некорректные id режиссёров.");
+                film.setDirectors(directors);
+            }
+        } catch (NoSuchElementException e) {
+            throw new IllegalArgumentException("Фильм с названием - " + film.getName() + " не создан." + e.getMessage());
+        }
+    }
+
+    @Override
+    public List<Film> getByDirector(Integer id, String sortBy) {
+        directorStorage.getDirectorById(id);
+        if (sortBy.equals("year"))
+            return filmStorage.getByDirector(id," f.RELEASE_DATE ASC");
+        else if (sortBy.equals("likes"))
+            return filmStorage.getByDirector(id, " POPULAR_FILMS.POPULARITY DESC");
+        else throw new IllegalArgumentException("Неверный формат сортировки");
     }
 }

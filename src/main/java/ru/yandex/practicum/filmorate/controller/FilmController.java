@@ -1,16 +1,17 @@
 package ru.yandex.practicum.filmorate.controller;
 
-import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.service.film.FilmService;
 
 import javax.validation.Valid;
 import java.util.Collection;
+import java.util.List;
 
 @RestController
 @RequestMapping("/films")
-@AllArgsConstructor
+@RequiredArgsConstructor
 public class FilmController {
 
     private final FilmService filmService;
@@ -58,6 +59,11 @@ public class FilmController {
     @DeleteMapping("/{id}/like/{userId}")
     public void deleteLike(@PathVariable Integer id, @PathVariable Integer userId) {
         filmService.deleteLike(id, userId);
+    }
+
+    @GetMapping("/director/{id}")
+    public List<Film> getByDirector(@RequestParam(defaultValue = "year") String sortBy, @PathVariable Integer id) {
+        return filmService.getByDirector(id, sortBy);
     }
 }
 
