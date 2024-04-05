@@ -181,6 +181,60 @@ class FilmDbStorageTest {
         assertEquals(1, recommendedFilmsForUser1.size());
     }
 
+    @Test
+    public void commonFilms() {
+        Film film_1 = createDefaultFilm();
+        Film film_2 = film_1.toBuilder()
+                .name("testFilm 2")
+                .description("testFilm 2")
+                .releaseDate(LocalDate.of(2001, 2, 2))
+                .duration(122)
+                .mpa(Mpa.builder()
+                        .id(2)
+                        .build())
+                .build();
+        Film film_3 = film_1.toBuilder()
+                .name("testFilm 3")
+                .description("testFilm 3")
+                .releaseDate(LocalDate.of(2002, 3, 3))
+                .duration(123)
+                .mpa(Mpa.builder()
+                        .id(3)
+                        .build())
+                .build();
+        User user_1 = User.builder()
+                .email("user_1@mail.ru")
+                .login("user_1@mail.ru")
+                .name("User 1")
+                .birthday(LocalDate.of(2005, 8, 15))
+                .build();
+        User user_2 = user_1.toBuilder()
+                .email("user_2@mail.ru")
+                .login("user_2@mail.ru")
+                .name("User 2")
+                .birthday(LocalDate.of(2006, 9, 16))
+                .build();
+
+        film_1 = filmDbStorage.addFilm(film_1);
+        film_2 = filmDbStorage.addFilm(film_2);
+        film_3 = filmDbStorage.addFilm(film_3);
+        user_1 = userDbStorage.addUser(user_1);
+        user_2 = userDbStorage.addUser(user_2);
+
+        filmDbStorage.addLike(film_1.getId(), user_1.getId());
+        filmDbStorage.addLike(film_2.getId(), user_1.getId());
+        filmDbStorage.addLike(film_3.getId(), user_1.getId());
+
+        filmDbStorage.addLike(film_1.getId(), user_2.getId());
+        filmDbStorage.addLike(film_3.getId(), user_2.getId());
+
+        Collection<Film> commonFilms = filmDbStorage.commonFilms(user_1.getId(), user_2.getId());
+
+        assertFalse(commonFilms.isEmpty());
+        assertTrue(commonFilms.containsAll(List.of(film_1, film_3, film_2)));
+        assertEquals(3, commonFilms.size());
+    }
+
     private Film createDefaultFilm() {
         return Film.builder()
                 .name("testFilm")
