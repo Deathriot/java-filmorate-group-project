@@ -332,16 +332,28 @@ public class FilmDbStorage implements FilmStorage {
     }
 
     @Override
-    public List<Film> getByDirector(int id, String sortBy) {
-        String query = "SELECT f.* FROM FILMS f " +
-                "JOIN FILM_DIRECTOR fd ON f.FILM_ID = fd.FILM_ID " +
-                "WHERE fd.DIRECTOR_ID =? ";
+    public List<Film> getByDirectorSortByLikes(int id) {
+        String sqlLikes = "SELECT F.*, R.*, COUNT(UF.FILM_ID) AS LIKES " +
+                "FROM FILMS f " +
+                "LEFT JOIN RATING AS R ON R.RATING_ID = F.RATING " +
+                "LEFT JOIN USER_FILM uf ON uf.FILM_ID = f.FILM_ID " +
+                "LEFT JOIN FILM_DIRECTOR fd ON f.FILM_ID = fd.FILM_ID " +
+                "WHERE fd.DIRECTOR_ID = ? " +
+                "GROUP BY F.FILM_ID " +
+                "ORDER BY LIKES DESC";
+        return jdbcTemplate.query(sqlLikes, (rs, rowNum) -> makeFilm(rs), id);
+    }
 
-        if (sortBy.equals("year"))
-            query += "ORDER BY f.RELEASE_DATE ASC";
-        else if (sortBy.equals("likes"))
-            query += "ORDER BY POPULAR_FILMS.POPULARITY DESC";
-
-        return jdbcTemplate.query(query, (rs, rowNum) -> makeFilm(rs), id);
+    @Override
+    public List<Film> getByDirectorSortByYear(int id) {
+        String sqlYear = "SELECT F.*, R.*, EXTRACT(YEAR FROM CAST(release_date AS date)) AS release_year " +
+                "FROM FILMS f " +
+                "LEFT JOIN RATING AS R ON R.RATING_ID = F.RATING " +
+                "LEFT JOIN USER_FILM uf ON uf.FILM_ID = f.FILM_ID " +
+                "LEFT JOIN FILM_DIRECTOR fd ON f.FILM_ID = fd.FILM_ID " +
+                "WHERE fd.DIRECTOR_ID = ? " +
+                "GROUP BY F.FILM_ID " +
+                "ORDER BY release_year ASC";
+        return jdbcTemplate.query(sqlYear, (rs, rowNum) -> makeFilm(rs), id);
     }
 }

@@ -41,7 +41,7 @@ public class Film {
 
     public List<Integer> directorToInt() {
         Set<Integer> directorWithoutDuplicate = new HashSet<>();
-        for (Director director: directors) {
+        for (Director director : directors) {
             directorWithoutDuplicate.add(director.getId());
         }
         return new ArrayList<>(directorWithoutDuplicate);
