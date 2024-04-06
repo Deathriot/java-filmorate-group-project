@@ -91,7 +91,7 @@ public class FilmServiceImpl implements FilmService {
     public List<Film> getByDirector(Integer id, String sortBy) {
         directorStorage.getDirectorById(id);
         if (sortBy.equals("year"))
-            return filmStorage.getByDirector(id," f.RELEASE_DATE ASC");
+            return filmStorage.getByDirector(id," FILMS.RELEASE_DATE ASC");
         else if (sortBy.equals("likes"))
             return filmStorage.getByDirector(id, " POPULAR_FILMS.POPULARITY DESC");
         else throw new IllegalArgumentException("Неверный формат сортировки");

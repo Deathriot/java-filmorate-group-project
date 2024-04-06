@@ -7,6 +7,7 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.simple.SimpleJdbcInsert;
 import org.springframework.jdbc.support.rowset.SqlRowSet;
 import org.springframework.stereotype.Component;
+import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.model.Director;
 import ru.yandex.practicum.filmorate.storage.director.DirectorStorage;
 
@@ -46,7 +47,7 @@ public class DirectorDbStorage implements DirectorStorage {
             return director.get(0);
         } else {
             log.info("Режиссёр с id {} не найден.", id);
-            throw new NoSuchElementException("Режиссёр с id " + id + " не найден.");
+            throw new NotFoundException("Режиссёр с id " + id + " не найден.");
         }
     }
 
@@ -59,7 +60,7 @@ public class DirectorDbStorage implements DirectorStorage {
         if (linesChanged > 0) {
             log.info("Обновлены данные режиссёра с id {} и именем {}", director.getId(), director.getName());
         } else {
-            throw new NoSuchElementException("Режиссёр с id " + director.getId() + " не найден.");
+            throw new NotFoundException("Режиссёр с id " + director.getId() + " не найден.");
         }
         return director;
     }
@@ -87,6 +88,7 @@ public class DirectorDbStorage implements DirectorStorage {
     }
 
 
+    @Override
     public List<Director> directorParsing(SqlRowSet dirRows) {
         List<Director> directors = new ArrayList<>();
         while (dirRows.next()) {
