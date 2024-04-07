@@ -35,6 +35,15 @@ public class ReviewDbStorage implements ReviewStorage {
 
     @Override
     public Review create(Review review) {
+
+        if(review.getUserId() == null){
+            throw new IncorrectParameterException("Не указан пользователь у отзыва");
+        }
+
+        if(review.getFilmId() == null){
+            throw new IncorrectParameterException("Не указан фильм у отзыва");
+        }
+
         userStorage.checkUserExist(review.getUserId());
         filmStorage.checkFilmExist(review.getFilmId());
 
@@ -48,6 +57,14 @@ public class ReviewDbStorage implements ReviewStorage {
     @Override
     public Review update(Review review) {
         checkReviewExist(review.getReviewId());
+
+        // Для тестов (хотят именно 400, а не 404)
+        try {
+            userStorage.checkUserExist(review.getUserId());
+            filmStorage.checkFilmExist(review.getFilmId());
+        } catch (NotFoundException ex) {
+            throw new IncorrectParameterException(ex.getMessage());
+        }
 
         String sql = "UPDATE REVIEWS SET CONTENT=?, IS_POSITIVE=?, USER_ID=?, FILM_ID=?, USEFUL=? WHERE REVIEW_ID=?;";
 
@@ -75,9 +92,15 @@ public class ReviewDbStorage implements ReviewStorage {
         String sql;
 
         if (filmId == null) {
-            sql = "SELECT * FROM REVIEWS ORDER BY USEFUL LIMIT ?;";
+            sql = "SELECT * FROM REVIEWS ORDER BY USEFUL DESC LIMIT ?;";
         } else {
-            sql = "SELECT * FROM REVIEWS WHERE FILM_ID = " + filmId + "ORDER BY USEFUL LIMIT ?;";
+            try {
+                filmStorage.checkFilmExist(filmId);
+            } catch (NotFoundException ex) {
+                throw new IncorrectParameterException(ex.getMessage());
+            }
+
+            sql = "SELECT * FROM REVIEWS WHERE FILM_ID = " + filmId + " ORDER BY USEFUL DESC LIMIT ?;";
         }
 
         return jdbcTemplate.query(sql, (rs, num) -> makeReview(rs), count);
@@ -164,17 +187,21 @@ public class ReviewDbStorage implements ReviewStorage {
     // как пользователь этот отзыв оценил (Пользователь не может удалить дизлайк, если он ставил лайк - и наоборот)
     private boolean checkRateExist(Integer reviewId, Integer userId, boolean isPositive) {
         checkReviewExist(reviewId);
-        userStorage.checkUserExist(userId);
+        try {
+            userStorage.checkUserExist(userId);
+        } catch (NotFoundException ex) {
+            throw new IncorrectParameterException(ex.getMessage());
+        }
 
         String sql = "SELECT IS_POSITIVE FROM USER_REVIEW_RATE WHERE REVIEW_ID=? AND USER_ID=?";
 
-        Boolean rate = jdbcTemplate.queryForObject(sql, (rs, num) -> rs.getBoolean("IS_POSITIVE"), reviewId, userId);
+        SqlRowSet sqlRowSet = jdbcTemplate.queryForRowSet(sql, reviewId, userId);
 
-        if (rate == null) {
+        if (!sqlRowSet.next()) {
             return false;
         }
 
-        return rate == isPositive;
+        return isPositive == sqlRowSet.getBoolean("IS_POSITIVE");
     }
 
     private void checkReviewExist(Integer reviewId) {
