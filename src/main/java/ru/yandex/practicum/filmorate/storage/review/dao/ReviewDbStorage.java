@@ -15,9 +15,7 @@ import ru.yandex.practicum.filmorate.storage.user.UserStorage;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 @Component
 @Primary
@@ -35,15 +33,6 @@ public class ReviewDbStorage implements ReviewStorage {
 
     @Override
     public Review create(Review review) {
-
-        if(review.getUserId() == null){
-            throw new IncorrectParameterException("Не указан пользователь у отзыва");
-        }
-
-        if(review.getFilmId() == null){
-            throw new IncorrectParameterException("Не указан фильм у отзыва");
-        }
-
         userStorage.checkUserExist(review.getUserId());
         filmStorage.checkFilmExist(review.getFilmId());
 
@@ -66,14 +55,11 @@ public class ReviewDbStorage implements ReviewStorage {
             throw new IncorrectParameterException(ex.getMessage());
         }
 
-        String sql = "UPDATE REVIEWS SET CONTENT=?, IS_POSITIVE=?, USER_ID=?, FILM_ID=?, USEFUL=? WHERE REVIEW_ID=?;";
+        String sql = "UPDATE REVIEWS SET CONTENT=?, IS_POSITIVE=? WHERE REVIEW_ID=?;";
 
         jdbcTemplate.update(sql,
                 review.getContent(),
                 review.getIsPositive(),
-                review.getUserId(),
-                review.getFilmId(),
-                review.getUseful(),
                 review.getReviewId());
 
         return get(review.getReviewId());
@@ -92,7 +78,7 @@ public class ReviewDbStorage implements ReviewStorage {
         String sql;
 
         if (filmId == null) {
-            sql = "SELECT * FROM REVIEWS ORDER BY USEFUL DESC LIMIT ?;";
+            sql = "SELECT * FROM REVIEWS LIMIT ?;";
         } else {
             try {
                 filmStorage.checkFilmExist(filmId);
@@ -100,10 +86,13 @@ public class ReviewDbStorage implements ReviewStorage {
                 throw new IncorrectParameterException(ex.getMessage());
             }
 
-            sql = "SELECT * FROM REVIEWS WHERE FILM_ID = " + filmId + " ORDER BY USEFUL DESC LIMIT ?;";
+            sql = "SELECT * FROM REVIEWS WHERE FILM_ID = " + filmId + " LIMIT ?;";
         }
 
-        return jdbcTemplate.query(sql, (rs, num) -> makeReview(rs), count);
+        // Сортировка на уровне sql запроса почему-то не работает
+        List<Review> reviewList = jdbcTemplate.query(sql, (rs, num) -> makeReview(rs), count);
+        reviewList.sort(Comparator.comparingInt(Review::getUseful).reversed());
+        return reviewList;
     }
 
     @Override
@@ -115,77 +104,26 @@ public class ReviewDbStorage implements ReviewStorage {
 
     @Override
     public void putLike(Integer id, Integer userId) {
-        if (checkRateExist(id, userId, true)) {
-            throw new IncorrectParameterException("Отзыву id = " + id + ", пользователь id=" + userId + " уже ставил лайк");
-        }
-
-        String sqlReviewUseful = "SELECT USEFUL FROM REVIEWS WHERE REVIEW_ID=?";
-
-        Integer useful = jdbcTemplate.queryForObject(sqlReviewUseful, (rs, num) -> rs.getInt("USEFUL"), id);
-        useful++;
-
-        String sqlUsefulUpdate = "UPDATE REVIEWS SET USEFUL=? WHERE REVIEW_ID=?";
-        jdbcTemplate.update(sqlUsefulUpdate, useful, id);
-
-        String sqlUpdateUserLikes = "INSERT INTO USER_REVIEW_RATE (USER_ID, REVIEW_ID, IS_POSITIVE) VALUES(?, ?, ?);";
-        jdbcTemplate.update(sqlUpdateUserLikes, userId, id, true);
+        changeRate(id, userId, true, false);
     }
 
     @Override
     public void putDislike(Integer id, Integer userId) {
-        if (checkRateExist(id, userId, false)) {
-            throw new IncorrectParameterException("Отзыву id = " + id + ", пользователь id=" + userId + " уже ставил дизлайк");
-        }
-
-        String sqlReviewUseful = "SELECT USEFUL FROM REVIEWS WHERE REVIEW_ID=?";
-
-        Integer useful = jdbcTemplate.queryForObject(sqlReviewUseful, (rs, num) -> rs.getInt("USEFUL"), id);
-        useful--;
-
-        String sqlUsefulUpdate = "UPDATE REVIEWS SET USEFUL=? WHERE REVIEW_ID=?";
-        jdbcTemplate.update(sqlUsefulUpdate, useful, id);
-
-        String sqlUpdateUserLikes = "INSERT INTO USER_REVIEW_RATE (USER_ID, REVIEW_ID, IS_POSITIVE) VALUES(?, ?, ?);";
-        jdbcTemplate.update(sqlUpdateUserLikes, userId, id, false);
+        changeRate(id, userId, false, false);
     }
 
     @Override
     public void deleteLike(Integer id, Integer userId) {
-        if (!checkRateExist(id, userId, true)) {
-            throw new IncorrectParameterException("Отзыву id = " + id + ", пользователь id=" + userId + " не ставил лайк");
-        }
-
-        String sqlReviewUseful = "SELECT USEFUL FROM REVIEWS WHERE REVIEW_ID=?";
-        Integer useful = jdbcTemplate.queryForObject(sqlReviewUseful, (rs, num) -> rs.getInt("USEFUL"), id);
-        useful--;
-
-        String sqlUsefulUpdate = "UPDATE REVIEWS SET USEFUL=? WHERE REVIEW_ID=?";
-        jdbcTemplate.update(sqlUsefulUpdate, useful, id);
-
-        String sqlDelete = "DELETE FROM USER_REVIEW_RATE WHERE USER_ID=? AND REVIEW_ID=?;";
-        jdbcTemplate.update(sqlDelete, userId, id);
+        changeRate(id, userId, true, true);
     }
 
     @Override
     public void deleteDislike(Integer id, Integer userId) {
-        if (!checkRateExist(id, userId, false)) {
-            throw new IncorrectParameterException("Отзыву id = " + id + ", пользователь id=" + userId + " не ставил дизлайк");
-        }
-
-        String sqlReviewUseful = "SELECT USEFUL FROM REVIEWS WHERE REVIEW_ID=?";
-        Integer useful = jdbcTemplate.queryForObject(sqlReviewUseful, (rs, num) -> rs.getInt("USEFUL"), id);
-        useful++;
-
-        String sqlUsefulUpdate = "UPDATE REVIEWS SET USEFUL=? WHERE REVIEW_ID=?";
-        jdbcTemplate.update(sqlUsefulUpdate, useful, id);
-
-        String sqlDelete = "DELETE FROM USER_REVIEW_RATE WHERE USER_ID=? AND REVIEW_ID=?;";
-        jdbcTemplate.update(sqlDelete, userId, id);
+        changeRate(id, userId, false, true);
     }
 
-    // Возвращает false, если у отзыва нет лайка/дизлайка или удаление оценки отзыва не соответствует тому,
-    // как пользователь этот отзыв оценил (Пользователь не может удалить дизлайк, если он ставил лайк - и наоборот)
-    private boolean checkRateExist(Integer reviewId, Integer userId, boolean isPositive) {
+    // 4 метода уж слишком однообразные, нужно их как-то сократить, например вот так..
+    private void changeRate(Integer reviewId, Integer userId, boolean isPositive, boolean isDelete) {
         checkReviewExist(reviewId);
         try {
             userStorage.checkUserExist(userId);
@@ -194,14 +132,46 @@ public class ReviewDbStorage implements ReviewStorage {
         }
 
         String sql = "SELECT IS_POSITIVE FROM USER_REVIEW_RATE WHERE REVIEW_ID=? AND USER_ID=?";
+        SqlRowSet userRate = jdbcTemplate.queryForRowSet(sql, reviewId, userId);
 
-        SqlRowSet sqlRowSet = jdbcTemplate.queryForRowSet(sql, reviewId, userId);
+        String sqlReviewUseful = "SELECT USEFUL FROM REVIEWS WHERE REVIEW_ID=?";
+        Integer useful = jdbcTemplate.queryForObject(sqlReviewUseful, (rs, num) -> rs.getInt("USEFUL"), reviewId);
 
-        if (!sqlRowSet.next()) {
-            return false;
+        if (!isDelete) {
+            if (userRate.next())
+                throw new IncorrectParameterException("Отзыву id = " + reviewId +
+                        ", пользователь id=" + userId + " уже ставил оценку");
+
+            if (isPositive) {
+                useful++;
+            } else {
+                useful--;
+            }
+
+            String sqlUpdateUserLikes = "INSERT INTO USER_REVIEW_RATE (USER_ID, REVIEW_ID, IS_POSITIVE) VALUES(?, ?, ?);";
+            jdbcTemplate.update(sqlUpdateUserLikes, userId, reviewId, isPositive);
+
+        } else {
+            if (!userRate.next())
+                throw new IncorrectParameterException("Отзыву id = " + reviewId +
+                        ", пользователь id=" + userId + " не ставил оценку");
+
+            if (isPositive != userRate.getBoolean("IS_POSITIVE"))
+                throw new IncorrectParameterException("Отзыву id = " + reviewId +
+                        ", пользователь id=" + userId + " не ставил такую оценку");
+
+            if (isPositive) {
+                useful--;
+            } else {
+                useful++;
+            }
+
+            String sqlDelete = "DELETE FROM USER_REVIEW_RATE WHERE USER_ID=? AND REVIEW_ID=?;";
+            jdbcTemplate.update(sqlDelete, userId, reviewId);
         }
 
-        return isPositive == sqlRowSet.getBoolean("IS_POSITIVE");
+        String sqlUsefulUpdate = "UPDATE REVIEWS SET USEFUL=? WHERE REVIEW_ID=?";
+        jdbcTemplate.update(sqlUsefulUpdate, useful, reviewId);
     }
 
     private void checkReviewExist(Integer reviewId) {
