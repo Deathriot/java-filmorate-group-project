@@ -1,7 +1,6 @@
 package ru.yandex.practicum.filmorate.controller;
 
 import lombok.RequiredArgsConstructor;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -110,7 +109,9 @@ public class ReviewDbStorageTest {
         review = storage.get(1);
         assertEquals(review.getUseful(), 1);
 
+        assertThrows(IncorrectParameterException.class, () -> storage.deleteDislike(1, 1));
         assertThrows(IncorrectParameterException.class, () -> storage.putLike(1, 1));
+        assertThrows(IncorrectParameterException.class, () -> storage.putDislike(1, 1));
     }
 
     @Test
@@ -120,7 +121,9 @@ public class ReviewDbStorageTest {
 
         review = storage.get(1);
         assertEquals(review.getUseful(), -1);
+        assertThrows(IncorrectParameterException.class, () -> storage.deleteLike(1, 1));
         assertThrows(IncorrectParameterException.class, () -> storage.putDislike(1, 1));
+        assertThrows(IncorrectParameterException.class, () -> storage.putLike(1, 1));
     }
 
     @Test
@@ -132,7 +135,8 @@ public class ReviewDbStorageTest {
         review = storage.get(1);
         assertEquals(review.getUseful(), 0);
 
-        assertThrows(IncorrectParameterException.class, () -> storage.deleteLike(1,1));
+        assertThrows(IncorrectParameterException.class, () -> storage.deleteLike(1, 1));
+        assertThrows(IncorrectParameterException.class, () -> storage.deleteDislike(1, 1));
     }
 
     @Test
@@ -144,7 +148,8 @@ public class ReviewDbStorageTest {
         review = storage.get(1);
         assertEquals(review.getUseful(), 0);
 
-        assertThrows(IncorrectParameterException.class, () -> storage.deleteDislike(1,1));
+        assertThrows(IncorrectParameterException.class, () -> storage.deleteLike(1, 1));
+        assertThrows(IncorrectParameterException.class, () -> storage.deleteDislike(1, 1));
     }
 
     @Test
