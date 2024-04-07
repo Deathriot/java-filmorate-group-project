@@ -22,6 +22,12 @@ public interface FilmStorage {
 
     Collection<Film> getPopular(Integer count);
 
+    Collection<Film> getPopularByGenre(Integer count, Integer genreId);
+
+    Collection<Film> getPopularByYear(Integer count, String year);
+
+    Collection<Film> getPopularByGenreAndYear(Integer count, Integer genreId, String year);
+
     void checkFilmExist(Integer id);
 
 }

@@ -21,4 +21,6 @@ public interface FilmService {
     void deleteLike(Integer id, Integer userId);
 
     Collection<Film> getPopular(Integer count);
+
+    Collection<Film> getPopular(Integer count, Integer genreId, String year);
 }
