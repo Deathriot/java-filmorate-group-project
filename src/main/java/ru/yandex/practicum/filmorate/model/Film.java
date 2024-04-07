@@ -1,8 +1,9 @@
 package ru.yandex.practicum.filmorate.model;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.Builder;
 import lombok.Data;
-import ru.yandex.practicum.filmorate.validator.IsAfterDate;
+import ru.yandex.practicum.filmorate.annotation.FilmAnnotation;
 
 import javax.validation.constraints.NotEmpty;
 import javax.validation.constraints.NotNull;
@@ -15,7 +16,7 @@ import java.util.List;
 import java.util.Set;
 
 @Data
-@Builder(toBuilder = true)
+@Builder
 public class Film {
 
     private Integer id;
@@ -27,7 +28,8 @@ public class Film {
     @NotNull
     private String description;
 
-    @IsAfterDate(current = "1895-12-27")
+    @FilmAnnotation
+    @JsonFormat(pattern = "yyyy-MM-dd")
     private LocalDate releaseDate;
 
     @Positive(message = "The length of the film must be positive")

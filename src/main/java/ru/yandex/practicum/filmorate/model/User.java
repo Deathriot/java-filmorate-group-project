@@ -12,7 +12,7 @@ import java.time.LocalDate;
 import java.util.Set;
 
 @Data
-@Builder(toBuilder = true)
+@Builder
 public class User {
 
     private Integer id;

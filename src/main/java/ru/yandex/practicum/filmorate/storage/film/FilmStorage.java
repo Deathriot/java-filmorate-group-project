@@ -31,8 +31,6 @@ public interface FilmStorage {
 
     void checkFilmExist(Integer id);
 
-    Collection<Film> getUserRecommendations(Integer userId);
-
     List<Film> getByDirectorSortByLikes(int id);
 
     List<Film> getByDirectorSortByYear(int id);
