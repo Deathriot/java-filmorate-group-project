@@ -56,10 +56,9 @@ public class FilmDbStorage implements FilmStorage {
         if (film.getGenres() != null) {
             updateGenreForFilm(filmId, film.getGenres());
         }
-
         Film newFilm = getFilmById(filmId);
         log.info("Film added: {}.", newFilm);
-        return getFilmById(filmId);
+        return newFilm;
     }
 
     @Override
@@ -135,7 +134,6 @@ public class FilmDbStorage implements FilmStorage {
                 "LEFT JOIN RATING AS R ON R.RATING_ID = F.RATING " +
                 "LEFT JOIN USER_FILM AS UF ON F.FILM_ID = UF.FILM_ID " +
                 "GROUP BY F.FILM_ID " +
-                "HAVING LIKES > 0 " +
                 "ORDER BY LIKES DESC " +
                 "LIMIT ?;";
         Collection<Film> films = jdbcTemplate.query(sql, (rs, rowNum) -> makeFilm(rs), count);
@@ -167,6 +165,9 @@ public class FilmDbStorage implements FilmStorage {
     }
 
     private void updateGenreForFilm(Integer filmId, List<Genre> genres) {
+        String sqlDelete = "DELETE FROM FILM_GENRE WHERE FILM_ID=? ";
+        jdbcTemplate.update(sqlDelete, filmId);
+
         if (genres != null && !genres.isEmpty()) {
             String sqlInsert = "MERGE INTO FILM_GENRE (FILM_ID, GENRE_ID) VALUES (?, ?) ";
             jdbcTemplate.batchUpdate(sqlInsert, new BatchPreparedStatementSetter() {

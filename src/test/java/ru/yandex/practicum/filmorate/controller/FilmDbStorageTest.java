@@ -73,19 +73,40 @@ class FilmDbStorageTest {
     public void deleteLikeTest() {
 
         User user = userDbStorage.addUser(User.builder().email("user2@mail.ru").login("User2").name("User2").birthday(LocalDate.of(1980, 12, 12)).build());
+        User user2 = userDbStorage.addUser(User.builder().email("user3@mail.ru").login("User3").name("User3").birthday(LocalDate.of(1980, 12, 12)).build());
 
+        Film newFilm1 = filmDbStorage.addFilm(createDefaultFilm());
+        Film newFilm2 = filmDbStorage.addFilm(createDefaultFilm());
+
+        filmDbStorage.addLike(newFilm1.getId(), user.getId());
+        filmDbStorage.addLike(newFilm2.getId(), user.getId());
+        filmDbStorage.addLike(newFilm2.getId(), user2.getId());
+
+        List<Film> likes = new ArrayList<>(filmDbStorage.getPopular(1));
+
+        assertTrue(likes.contains(newFilm2));
+
+        filmDbStorage.deleteLike(newFilm2.getId(), user.getId());
+        filmDbStorage.deleteLike(newFilm2.getId(), user2.getId());
+
+        likes = new ArrayList<>(filmDbStorage.getPopular(1));
+
+        assertFalse(likes.contains(newFilm2));
+        assertTrue(likes.contains(newFilm1));
+    }
+
+    @Test
+    public void deleteFilmTest() {
 
         Film newFilm = filmDbStorage.addFilm(createDefaultFilm());
 
-        filmDbStorage.addLike(newFilm.getId(), user.getId());
-
-        List<Film> likes = new ArrayList<>(filmDbStorage.getPopular(10));
+        List<Film> likes = new ArrayList<>(filmDbStorage.getAllFilms());
 
         assertTrue(likes.contains(newFilm));
 
-        filmDbStorage.deleteLike(newFilm.getId(), user.getId());
+        filmDbStorage.deleteFilm(newFilm.getId());
 
-        likes = new ArrayList<>(filmDbStorage.getPopular(10));
+        likes = new ArrayList<>(filmDbStorage.getAllFilms());
 
         assertFalse(likes.contains(newFilm));
     }

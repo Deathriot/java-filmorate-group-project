@@ -30,9 +30,10 @@ public class UserDbStorage implements UserStorage {
 
     @Override
     public User addUser(User user) {
-         SimpleJdbcInsert simpleJdbcInsert = new SimpleJdbcInsert(jdbcTemplate)
+        SimpleJdbcInsert simpleJdbcInsert = new SimpleJdbcInsert(jdbcTemplate)
                 .withTableName("USERS")
                 .usingGeneratedKeyColumns("USER_ID");
+        checkUserName(user);
         User newUser = getUserById(simpleJdbcInsert.executeAndReturnKey(toMap(user)).intValue());
         log.info("User added. user{}.", newUser);
         return newUser;
@@ -42,6 +43,7 @@ public class UserDbStorage implements UserStorage {
     public User updateUser(User user) {
         Integer userId = user.getId();
         checkUserExist(userId);
+        checkUserName(user);
         String updateSql = "UPDATE USERS SET EMAIL=?, LOGIN=?, NAME=?, BIRTHDAY=? WHERE USER_ID=?;";
         jdbcTemplate.update(updateSql,
                 user.getEmail(),
@@ -142,6 +144,12 @@ public class UserDbStorage implements UserStorage {
                 .name(rs.getString("NAME"))
                 .birthday(LocalDate.parse(rs.getString("BIRTHDAY")))
                 .build();
+    }
+
+    private void checkUserName(User user) {
+        if (user.getName().isBlank()) {
+            user.setName(user.getLogin());
+        }
     }
 
     public Map<String, Object> toMap(User user) {
