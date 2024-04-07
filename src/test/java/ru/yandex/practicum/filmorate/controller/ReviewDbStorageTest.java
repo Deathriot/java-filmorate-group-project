@@ -1,12 +1,14 @@
 package ru.yandex.practicum.filmorate.controller;
 
 import lombok.RequiredArgsConstructor;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.annotation.DirtiesContext;
+import ru.yandex.practicum.filmorate.exception.IncorrectParameterException;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.Mpa;
@@ -17,6 +19,9 @@ import ru.yandex.practicum.filmorate.storage.review.ReviewStorage;
 import ru.yandex.practicum.filmorate.storage.user.UserStorage;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -32,7 +37,7 @@ public class ReviewDbStorageTest {
     private Review review;
 
     @BeforeEach
-    public void create(){
+    public void create() {
         User user = User.builder()
                 .email("user@mail.ru")
                 .login("User")
@@ -57,7 +62,7 @@ public class ReviewDbStorageTest {
     }
 
     @Test
-    public void createReviewTest(){
+    public void createReviewTest() {
         storage.create(review);
         review = storage.get(1);
 
@@ -69,7 +74,7 @@ public class ReviewDbStorageTest {
     }
 
     @Test
-    public void createFailureReviewTest(){
+    public void createFailureReviewTest() {
         review.setFilmId(3);
         assertThrows(NotFoundException.class, () -> storage.create(review));
 
@@ -79,7 +84,7 @@ public class ReviewDbStorageTest {
     }
 
     @Test
-    public void updateReviewTest(){
+    public void updateReviewTest() {
         review = storage.create(review);
         review.setContent("i change my mind");
         review.setIsPositive(true);
@@ -89,7 +94,92 @@ public class ReviewDbStorageTest {
         assertEquals(review, review1);
     }
 
-    private Review buildReview(){
+    @Test
+    public void updateFailureTest() {
+        review = storage.create(review);
+        review.setFilmId(33);
+
+        assertThrows(IncorrectParameterException.class, () -> storage.update(review));
+    }
+
+    @Test
+    public void putLikeTest() {
+        review = storage.create(review);
+        storage.putLike(1, 1);
+
+        review = storage.get(1);
+        assertEquals(review.getUseful(), 1);
+
+        assertThrows(IncorrectParameterException.class, () -> storage.putLike(1, 1));
+    }
+
+    @Test
+    public void putDisLikeTest() {
+        review = storage.create(review);
+        storage.putDislike(1, 1);
+
+        review = storage.get(1);
+        assertEquals(review.getUseful(), -1);
+        assertThrows(IncorrectParameterException.class, () -> storage.putDislike(1, 1));
+    }
+
+    @Test
+    public void deleteLikeTest() {
+        review = storage.create(review);
+        storage.putLike(1, 1);
+        storage.deleteLike(1, 1);
+
+        review = storage.get(1);
+        assertEquals(review.getUseful(), 0);
+
+        assertThrows(IncorrectParameterException.class, () -> storage.deleteLike(1,1));
+    }
+
+    @Test
+    public void deleteDislikeTest() {
+        review = storage.create(review);
+        storage.putDislike(1, 1);
+        storage.deleteDislike(1, 1);
+
+        review = storage.get(1);
+        assertEquals(review.getUseful(), 0);
+
+        assertThrows(IncorrectParameterException.class, () -> storage.deleteDislike(1,1));
+    }
+
+    @Test
+    public void getAllTest() {
+        Review review1 = storage.create(review); //1
+        Review review2 = storage.create(review); //3
+        Review review3 = storage.create(review); //2
+
+        storage.putLike(1, 1);
+        storage.putDislike(2, 1);
+        review1 = storage.get(review1.getReviewId());
+        review2 = storage.get(review2.getReviewId());
+
+        Collection<Review> reviews = storage.getAll(1, 10);
+        List<Review> reviewList = new ArrayList<>(reviews);
+
+        assertEquals(reviewList.size(), 3);
+        assertEquals(reviewList.get(0), review1);
+        assertEquals(reviewList.get(1), review3);
+        assertEquals(reviewList.get(2), review2);
+    }
+
+    @Test
+    public void deleteReviewTest() {
+        storage.create(review);
+        storage.create(review);
+
+        storage.deleteReview(1);
+        storage.deleteReview(2);
+
+        assertThrows(NotFoundException.class, () -> storage.get(1));
+        assertEquals(storage.getAll(null, 100).size(), 0);
+    }
+
+    private Review buildReview() {
         return Review.builder()
                 .content("Dis film is shieeet")
                 .userId(1)
