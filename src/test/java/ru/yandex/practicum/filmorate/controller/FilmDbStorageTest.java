@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.transaction.annotation.Transactional;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.Mpa;
 import ru.yandex.practicum.filmorate.model.User;
@@ -21,6 +22,7 @@ import static org.junit.jupiter.api.Assertions.*;
 @SpringBootTest
 @AutoConfigureTestDatabase
 @RequiredArgsConstructor(onConstructor_ = @Autowired)
+@Transactional
 class FilmDbStorageTest {
 
     private final FilmStorage filmDbStorage;
@@ -231,8 +233,8 @@ class FilmDbStorageTest {
         Collection<Film> commonFilms = filmDbStorage.commonFilms(user_1.getId(), user_2.getId());
 
         assertFalse(commonFilms.isEmpty());
-        assertTrue(commonFilms.containsAll(List.of(film_1, film_3, film_2)));
-        assertEquals(3, commonFilms.size());
+        assertTrue(commonFilms.containsAll(List.of(film_1, film_3)));
+        assertEquals(2, commonFilms.size());
     }
 
     private Film createDefaultFilm() {
