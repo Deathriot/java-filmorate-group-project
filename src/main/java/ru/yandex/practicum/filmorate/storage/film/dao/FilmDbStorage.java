@@ -134,7 +134,7 @@ public class FilmDbStorage implements FilmStorage {
         userStorage.checkUserExist(userId);
         String sql = "INSERT INTO USER_FILM (USER_ID, FILM_ID) VALUES(?, ?);";
         jdbcTemplate.update(sql, userId, filmId);
-        Events.addEvent(jdbcTemplate, LIKE, ADD, filmId, userId);
+        Events.addEvent(jdbcTemplate, LIKE, ADD, userId, filmId);
         log.info("Like added to film with id={}.", filmId);
     }
 
