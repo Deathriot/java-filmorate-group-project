@@ -255,7 +255,6 @@ public class FilmDbStorage implements FilmStorage {
 
     @Override
     public Collection<Film> commonFilms(Integer userId, Integer friendId) {
-        Collection<Film> commonFilms = new ArrayList<>();
         String query = "SELECT f.*, " +
                 "r.rating_id, " +
                 "r.rating_name " +
@@ -267,8 +266,7 @@ public class FilmDbStorage implements FilmStorage {
                 "HAVING COUNT(DISTINCT uf.user_id) = 2 " +
                 "ORDER BY COUNT(*) DESC";
 
-        commonFilms = jdbcTemplate.query(query, (rs, rowNum) -> makeFilm(rs), userId, friendId);
-        return commonFilms;
+        return jdbcTemplate.query(query, (rs, rowNum) -> makeFilm(rs), userId, friendId);
     }
 
     private Film makeFilm(ResultSet rs) throws SQLException {
