@@ -102,4 +102,9 @@ public class FilmServiceImpl implements FilmService {
             throw new IllegalArgumentException("Неверный формат сортировки");
         }
     }
+
+    @Override
+    public Collection<Film> findCommonFilms(Integer userId, Integer friendId) {
+        return filmStorage.findCommonFilms(userId, friendId);
+    }
 }

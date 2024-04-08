@@ -8,7 +8,6 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.simple.SimpleJdbcInsert;
 import org.springframework.jdbc.support.rowset.SqlRowSet;
 import org.springframework.stereotype.Component;
-import ru.yandex.practicum.filmorate.event.Events;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.model.Director;
 import ru.yandex.practicum.filmorate.model.Film;
@@ -27,10 +26,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDate;
 import java.util.*;
-
-import static ru.yandex.practicum.filmorate.model.event.EventOperation.ADD;
-import static ru.yandex.practicum.filmorate.model.event.EventOperation.REMOVE;
-import static ru.yandex.practicum.filmorate.model.event.EventType.LIKE;
 
 @Component
 @Slf4j
@@ -134,7 +129,6 @@ public class FilmDbStorage implements FilmStorage {
         userStorage.checkUserExist(userId);
         String sql = "INSERT INTO USER_FILM (USER_ID, FILM_ID) VALUES(?, ?);";
         jdbcTemplate.update(sql, userId, filmId);
-        Events.addEvent(jdbcTemplate, LIKE, ADD, filmId, userId);
         log.info("Like added to film with id={}.", filmId);
     }
 
@@ -144,8 +138,7 @@ public class FilmDbStorage implements FilmStorage {
         userStorage.checkUserExist(userId);
         String sql = "DELETE FROM USER_FILM WHERE FILM_ID=? AND USER_ID=?;";
         jdbcTemplate.update(sql, filmId, userId);
-        Events.addEvent(jdbcTemplate, LIKE, REMOVE, filmId, userId);
-        log.info("Like removed from film with id={}.", filmId);
+        log.info("Like remove.");
     }
 
     @Override
@@ -258,6 +251,22 @@ public class FilmDbStorage implements FilmStorage {
                 "ORDER BY COUNT(f.film_id) DESC";
 
         return jdbcTemplate.query(generalQuery, (rs, rowNum) -> makeFilm(rs), userId, userId);
+    }
+
+    @Override
+    public Collection<Film> findCommonFilms(Integer userId, Integer friendId) {
+        String query = "SELECT f.*, " +
+                "r.rating_id, " +
+                "r.rating_name " +
+                "FROM FILMS f " +
+                "JOIN USER_FILM uf ON f.film_id = uf.film_id " +
+                "JOIN rating r ON f.rating = r.rating_id " +
+                "WHERE uf.user_id IN (?, ?) " +
+                "GROUP BY f.film_id " +
+                "HAVING COUNT(DISTINCT uf.user_id) = 2 " +
+                "ORDER BY COUNT(*) DESC";
+
+        return jdbcTemplate.query(query, (rs, rowNum) -> makeFilm(rs), userId, friendId);
     }
 
     private Film makeFilm(ResultSet rs) throws SQLException {
