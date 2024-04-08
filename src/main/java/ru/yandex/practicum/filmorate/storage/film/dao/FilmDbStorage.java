@@ -8,6 +8,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.simple.SimpleJdbcInsert;
 import org.springframework.jdbc.support.rowset.SqlRowSet;
 import org.springframework.stereotype.Component;
+import ru.yandex.practicum.filmorate.event.Events;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.model.Director;
 import ru.yandex.practicum.filmorate.model.Film;
@@ -26,6 +27,10 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDate;
 import java.util.*;
+
+import static ru.yandex.practicum.filmorate.model.event.EventOperation.ADD;
+import static ru.yandex.practicum.filmorate.model.event.EventOperation.REMOVE;
+import static ru.yandex.practicum.filmorate.model.event.EventType.LIKE;
 
 @Component
 @Slf4j
@@ -129,6 +134,7 @@ public class FilmDbStorage implements FilmStorage {
         userStorage.checkUserExist(userId);
         String sql = "INSERT INTO USER_FILM (USER_ID, FILM_ID) VALUES(?, ?);";
         jdbcTemplate.update(sql, userId, filmId);
+        Events.addEvent(jdbcTemplate, LIKE, ADD, filmId, userId);
         log.info("Like added to film with id={}.", filmId);
     }
 
@@ -138,7 +144,8 @@ public class FilmDbStorage implements FilmStorage {
         userStorage.checkUserExist(userId);
         String sql = "DELETE FROM USER_FILM WHERE FILM_ID=? AND USER_ID=?;";
         jdbcTemplate.update(sql, filmId, userId);
-        log.info("Like remove.");
+        Events.addEvent(jdbcTemplate, LIKE, REMOVE, filmId, userId);
+        log.info("Like removed from film with id={}.", filmId);
     }
 
     @Override
@@ -218,6 +225,39 @@ public class FilmDbStorage implements FilmStorage {
         Optional.ofNullable(jdbcTemplate.queryForObject(sqlQuery, Integer.class, id))
                 .filter(count -> count == 1)
                 .orElseThrow(() -> new NotFoundException(String.format("No such film with this id:%s.", id)));
+    }
+
+    @Override
+    public Collection<Film> getUserRecommendations(Integer userId) {
+        // 1) Найти пользователей с максимальным количеством пересечения по лайкам.
+        String query1 = "SELECT uf2.user_id " +
+                "FROM user_film uf1 " +
+                "JOIN user_film uf2 ON uf1.film_id = uf2.film_id AND uf1.user_id <> uf2.user_id " +
+                "WHERE uf1.user_id = ? " +
+                "GROUP BY uf1.user_id, uf2.user_id " +
+                "ORDER BY COUNT(*) DESC";
+
+        // 2) Найдем все фильмы, который лайкнул пользователь
+        String query2 = "SELECT film_id FROM user_film WHERE user_id = ?";
+
+        // 3) Рекомендовать фильмы, которым поставил лайк пользователь с похожими вкусами, а тот, для кого
+        // составляется рекомендация, ещё не поставил.
+        String generalQuery = "SELECT f.film_id, " +
+                "f.title, " +
+                "f.description, " +
+                "f.release_date, " +
+                "f.duration, " +
+                "r.rating_id, " +
+                "r.rating_name " +
+                "FROM user_film uf " +
+                "JOIN films f ON f.film_id = uf.film_id " +
+                "JOIN rating r ON f.rating = r.rating_id " +
+                "WHERE uf.user_id IN (" + query1 + ") " +
+                "AND uf.film_id NOT IN (" + query2 + ") " +
+                "GROUP BY f.film_id " +
+                "ORDER BY COUNT(f.film_id) DESC";
+
+        return jdbcTemplate.query(generalQuery, (rs, rowNum) -> makeFilm(rs), userId, userId);
     }
 
     private Film makeFilm(ResultSet rs) throws SQLException {

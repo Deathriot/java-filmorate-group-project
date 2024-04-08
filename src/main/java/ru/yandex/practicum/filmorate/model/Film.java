@@ -13,7 +13,7 @@ import java.time.LocalDate;
 import java.util.List;
 
 @Data
-@Builder
+@Builder(toBuilder = true)
 public class Film {
 
     private Integer id;
