@@ -6,10 +6,13 @@ import org.springframework.context.annotation.Primary;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.simple.SimpleJdbcInsert;
+import org.springframework.jdbc.support.rowset.SqlRowSet;
 import org.springframework.stereotype.Component;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
+import ru.yandex.practicum.filmorate.model.Director;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.Genre;
+import ru.yandex.practicum.filmorate.storage.director.DirectorStorage;
 import ru.yandex.practicum.filmorate.storage.film.FilmStorage;
 import ru.yandex.practicum.filmorate.storage.genre.GenreStorage;
 import ru.yandex.practicum.filmorate.storage.genre.dao.GenreDbStorage;
@@ -33,16 +36,19 @@ public class FilmDbStorage implements FilmStorage {
     private final UserStorage userStorage;
     private final MpaStorage mpaStorage;
     private final GenreStorage genreStorage;
+    private final DirectorStorage directorStorage;
 
     @Autowired
     public FilmDbStorage(JdbcTemplate jdbcTemplate,
                          UserDbStorage userStorage,
                          MpaDbStorage mpaStorage,
-                         GenreDbStorage genreStorage) {
+                         GenreDbStorage genreStorage,
+                         DirectorStorage directorStorage) {
         this.jdbcTemplate = jdbcTemplate;
         this.userStorage = userStorage;
         this.mpaStorage = mpaStorage;
         this.genreStorage = genreStorage;
+        this.directorStorage = directorStorage;
     }
 
     @Override
@@ -56,6 +62,11 @@ public class FilmDbStorage implements FilmStorage {
         if (film.getGenres() != null) {
             updateGenreForFilm(filmId, film.getGenres());
         }
+
+        if (film.getDirectors() != null) {
+            updateDirectorsForFilm(filmId, film.getDirectors());
+        }
+
         Film newFilm = getFilmById(filmId);
         log.info("Film added: {}.", newFilm);
         return newFilm;
@@ -83,6 +94,9 @@ public class FilmDbStorage implements FilmStorage {
                 film.getMpa().getId(),
                 filmId);
         updateGenreForFilm(filmId, film.getGenres());
+
+        updateDirectorsForFilm(filmId, film.getDirectors());
+
         Film newFilm = getFilmById(filmId);
         log.info("Film updated. film{}.", newFilm);
         return newFilm;
@@ -210,6 +224,11 @@ public class FilmDbStorage implements FilmStorage {
         Integer id = rs.getInt("FILM_ID");
         String sqlGenre = "SELECT * FROM GENRE WHERE GENRE_ID IN (SELECT GENRE_ID FROM FILM_GENRE WHERE FILM_ID=?);";
         List<Genre> genres = jdbcTemplate.query(sqlGenre, (result, rowNum) -> genreStorage.makeGenre(result), id);
+
+        String sqlDirectors = "SELECT * FROM DIRECTOR WHERE DIRECTOR_ID IN (SELECT DIRECTOR_ID FROM FILM_DIRECTOR WHERE FILM_ID=?);";
+        SqlRowSet sqlRowSet = jdbcTemplate.queryForRowSet(sqlDirectors, id);
+        List<Director> directors = directorStorage.directorParsing(sqlRowSet);
+
         return Film.builder()
                 .id(rs.getInt("FILM_ID"))
                 .name(rs.getString("TITLE"))
@@ -218,6 +237,7 @@ public class FilmDbStorage implements FilmStorage {
                 .duration(rs.getInt("DURATION"))
                 .mpa(mpaStorage.makeMpa(rs))
                 .genres(genres)
+                .directors(directors)
                 .build();
     }
 
@@ -243,6 +263,28 @@ public class FilmDbStorage implements FilmStorage {
         }
     }
 
+    private void updateDirectorsForFilm(Integer filmId, List<Director> directors) {
+        String sqlDelete = "DELETE FROM FILM_DIRECTOR WHERE FILM_ID=? ";
+        jdbcTemplate.update(sqlDelete, filmId);
+
+        if (directors != null && !directors.isEmpty()) {
+            String sqlInsert = "MERGE INTO FILM_DIRECTOR (FILM_ID, DIRECTOR_ID) VALUES (?, ?) ";
+            jdbcTemplate.batchUpdate(sqlInsert, new BatchPreparedStatementSetter() {
+                @Override
+                public void setValues(PreparedStatement ps, int i) throws SQLException {
+                    Director director = directors.get(i);
+                    ps.setInt(1, filmId);
+                    ps.setInt(2, director.getId());
+                }
+
+                @Override
+                public int getBatchSize() {
+                    return directors.size();
+                }
+            });
+        }
+    }
+
     private Map<String, Object> toMap(Film film) {
         Map<String, Object> values = new HashMap<>();
         values.put("TITLE", film.getName());
@@ -251,5 +293,31 @@ public class FilmDbStorage implements FilmStorage {
         values.put("DURATION", film.getDuration());
         values.put("RATING", film.getMpa().getId());
         return values;
+    }
+
+    @Override
+    public List<Film> getByDirectorSortByLikes(int id) {
+        String sqlLikes = "SELECT F.*, R.*, COUNT(UF.FILM_ID) AS LIKES " +
+                "FROM FILMS f " +
+                "LEFT JOIN RATING AS R ON R.RATING_ID = F.RATING " +
+                "LEFT JOIN USER_FILM uf ON uf.FILM_ID = f.FILM_ID " +
+                "LEFT JOIN FILM_DIRECTOR fd ON f.FILM_ID = fd.FILM_ID " +
+                "WHERE fd.DIRECTOR_ID = ? " +
+                "GROUP BY F.FILM_ID " +
+                "ORDER BY LIKES DESC";
+        return jdbcTemplate.query(sqlLikes, (rs, rowNum) -> makeFilm(rs), id);
+    }
+
+    @Override
+    public List<Film> getByDirectorSortByYear(int id) {
+        String sqlYear = "SELECT F.*, R.*, EXTRACT(YEAR FROM CAST(release_date AS date)) AS release_year " +
+                "FROM FILMS f " +
+                "LEFT JOIN RATING AS R ON R.RATING_ID = F.RATING " +
+                "LEFT JOIN USER_FILM uf ON uf.FILM_ID = f.FILM_ID " +
+                "LEFT JOIN FILM_DIRECTOR fd ON f.FILM_ID = fd.FILM_ID " +
+                "WHERE fd.DIRECTOR_ID = ? " +
+                "GROUP BY F.FILM_ID " +
+                "ORDER BY release_year ASC";
+        return jdbcTemplate.query(sqlYear, (rs, rowNum) -> makeFilm(rs), id);
     }
 }

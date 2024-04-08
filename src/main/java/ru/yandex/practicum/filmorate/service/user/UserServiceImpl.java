@@ -10,7 +10,6 @@ import java.util.Collection;
 @Service
 @RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
-
     private final UserStorage userStorage;
 
     @Override
