@@ -104,7 +104,7 @@ public class FilmServiceImpl implements FilmService {
     }
 
     @Override
-    public Collection<Film> commonFilms(Integer userId, Integer friendId) {
-        return filmStorage.commonFilms(userId, friendId);
+    public Collection<Film> findCommonFilms(Integer userId, Integer friendId) {
+        return filmStorage.findCommonFilms(userId, friendId);
     }
 }

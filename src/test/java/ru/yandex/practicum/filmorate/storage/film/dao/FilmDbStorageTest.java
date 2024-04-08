@@ -361,7 +361,7 @@ class FilmDbStorageTest {
         filmDbStorage.addLike(film_1.getId(), user_2.getId());
         filmDbStorage.addLike(film_3.getId(), user_2.getId());
 
-        Collection<Film> commonFilms = filmDbStorage.commonFilms(user_1.getId(), user_2.getId());
+        Collection<Film> commonFilms = filmDbStorage.findCommonFilms(user_1.getId(), user_2.getId());
 
         assertFalse(commonFilms.isEmpty());
         assertTrue(commonFilms.containsAll(List.of(film_1, film_3)));

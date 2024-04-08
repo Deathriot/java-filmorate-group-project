@@ -27,5 +27,5 @@ public interface FilmService {
 
     Collection<Film> getPopular(Integer count, Integer genreId, String year);
 
-    Collection<Film> commonFilms(Integer userId, Integer friendId);
+    Collection<Film> findCommonFilms(Integer userId, Integer friendId);
 }

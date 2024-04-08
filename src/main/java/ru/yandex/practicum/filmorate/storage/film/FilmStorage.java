@@ -33,7 +33,7 @@ public interface FilmStorage {
 
     List<Film> getByDirectorSortByLikes(int id);
 
-    Collection<Film> commonFilms(Integer userId, Integer friendId);
+    Collection<Film> findCommonFilms(Integer userId, Integer friendId);
 
     List<Film> getByDirectorSortByYear(int id);
 
