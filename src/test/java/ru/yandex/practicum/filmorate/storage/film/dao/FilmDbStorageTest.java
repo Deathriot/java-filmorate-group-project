@@ -6,10 +6,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
-import ru.yandex.practicum.filmorate.model.Film;
-import ru.yandex.practicum.filmorate.model.Genre;
-import ru.yandex.practicum.filmorate.model.Mpa;
-import ru.yandex.practicum.filmorate.model.User;
+import ru.yandex.practicum.filmorate.model.*;
+import ru.yandex.practicum.filmorate.storage.director.DirectorStorage;
 import ru.yandex.practicum.filmorate.storage.film.FilmStorage;
 import ru.yandex.practicum.filmorate.storage.user.UserStorage;
 
@@ -30,6 +28,7 @@ class FilmDbStorageTest {
 
     private final FilmStorage filmDbStorage;
     private final UserStorage userDbStorage;
+    private final DirectorStorage directorDbStorage;
 
     @Test
     public void addFilmTest() {
@@ -310,7 +309,7 @@ class FilmDbStorageTest {
         Collection<Film> recommendedFilmsForUser1 = filmDbStorage.getUserRecommendations(user_1.getId());
 
         assertFalse(recommendedFilmsForUser1.isEmpty());
-        assertTrue(recommendedFilmsForUser1.containsAll(List.of(film_3)));
+        assertTrue(recommendedFilmsForUser1.contains(film_3));
         assertEquals(1, recommendedFilmsForUser1.size());
     }
 
@@ -366,6 +365,120 @@ class FilmDbStorageTest {
         assertFalse(commonFilms.isEmpty());
         assertTrue(commonFilms.containsAll(List.of(film_1, film_3)));
         assertEquals(2, commonFilms.size());
+    }
+
+    @Test
+    void searchFilmsAnywayByTitleReturnFilms() {
+        // given
+        Film film = filmDbStorage.addFilm(createDefaultFilm());
+
+        // when
+        Collection<Film> findFilms = filmDbStorage.findFilmsByDirectorAndTitle("EsTfI");
+
+        // then
+        assertThat(findFilms)
+                .isNotNull()
+                .usingRecursiveComparison()
+                .isEqualTo(List.of(film));
+    }
+
+    @Test
+    void searchFilmsAnywayByDirectorReturnFilms() {
+        // given
+        Film film = createDefaultFilm();
+        Director addedDirector = directorDbStorage.createDirector(new Director(1, "Director"));
+        film.setDirectors(List.of(addedDirector));
+        Film addedFilm = filmDbStorage.addFilm(film);
+
+        // when
+        Collection<Film> findFilms = filmDbStorage.findFilmsByDirectorAndTitle("IrEc");
+
+        // then
+        assertThat(findFilms)
+                .isNotNull()
+                .usingRecursiveComparison()
+                .isEqualTo(List.of(addedFilm));
+    }
+
+    @Test
+    void searchFilmsAnywayReturnEmpty() {
+        // given
+        filmDbStorage.addFilm(createDefaultFilm());
+
+        // when
+        Collection<Film> findFilms = filmDbStorage.findFilmsByDirectorAndTitle("Films");
+
+        // then
+        assertThat(findFilms)
+                .isNotNull()
+                .usingRecursiveComparison()
+                .isEqualTo(Collections.EMPTY_LIST);
+    }
+
+    @Test
+    void searchFilmsByTitleReturnFilms() {
+        // given
+        Film film = filmDbStorage.addFilm(createDefaultFilm());
+
+        // when
+        Collection<Film> findFilms = filmDbStorage.findFilmsByTitle("EsTfI");
+
+        // then
+        assertThat(findFilms)
+                .isNotNull()
+                .usingRecursiveComparison()
+                .isEqualTo(List.of(film));
+    }
+
+    @Test
+    void searchFilmsByTitleReturnEmpty() {
+        // given
+        filmDbStorage.addFilm(createDefaultFilm());
+
+        // when
+        Collection<Film> findFilms = filmDbStorage.findFilmsByTitle("Films");
+
+        // then
+        assertThat(findFilms)
+                .isNotNull()
+                .usingRecursiveComparison()
+                .isEqualTo(Collections.EMPTY_LIST);
+    }
+
+    @Test
+    void searchFilmsByDirectorReturnFilms() {
+        // given
+        Film film = createDefaultFilm();
+        Director addedDirector = directorDbStorage.createDirector(new Director(1, "Director"));
+        film.setDirectors(List.of(addedDirector));
+        Film addedFilm = filmDbStorage.addFilm(film);
+
+        // when
+        Collection<Film> findFilms = filmDbStorage.findFilmsByDirector("IrEc");
+
+        // then
+        assertThat(findFilms)
+                .isNotNull()
+                .usingRecursiveComparison()
+                .isEqualTo(List.of(addedFilm));
+    }
+
+    @Test
+    void searchFilmsByDirectorReturnEmpty() {
+        // given
+        Film film = createDefaultFilm();
+        Director addedDirector = directorDbStorage.createDirector(new Director(1, "Director"));
+        film.setDirectors(List.of(addedDirector));
+        filmDbStorage.addFilm(film);
+
+        // when
+        Collection<Film> findFilms = filmDbStorage.findFilmsByDirectorAndTitle("direct0r");
+
+        // then
+        assertThat(findFilms)
+                .isNotNull()
+                .usingRecursiveComparison()
+                .isEqualTo(Collections.EMPTY_LIST);
     }
 
     private Film createDefaultFilm() {
