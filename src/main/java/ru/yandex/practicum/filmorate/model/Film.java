@@ -32,7 +32,7 @@ public class Film {
     @Positive(message = "The length of the film must be positive")
     private Integer duration;
 
-    protected Mpa mpa;
+    private Mpa mpa;
 
     private List<Genre> genres;
 

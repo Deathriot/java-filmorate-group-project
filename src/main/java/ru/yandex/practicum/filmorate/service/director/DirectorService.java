@@ -10,9 +10,9 @@ public interface DirectorService {
 
     List<Director> getDirectors();
 
-    Director getDirectorById(int id);
+    Director getDirectorById(Integer id);
 
     Director updateDirector(Director director);
 
-    void deleteDirectorById(int id);
+    void deleteDirectorById(Integer id);
 }

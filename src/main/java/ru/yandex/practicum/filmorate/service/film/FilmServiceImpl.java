@@ -1,6 +1,6 @@
 package ru.yandex.practicum.filmorate.service.film;
 
-import lombok.RequiredArgsConstructor;
+import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.model.Director;
@@ -15,7 +15,7 @@ import java.util.NoSuchElementException;
 
 @Service
 @Slf4j
-@RequiredArgsConstructor
+@AllArgsConstructor
 public class FilmServiceImpl implements FilmService {
 
     private final FilmStorage filmStorage;

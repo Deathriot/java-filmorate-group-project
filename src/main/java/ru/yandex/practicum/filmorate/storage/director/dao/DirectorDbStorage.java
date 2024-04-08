@@ -1,6 +1,6 @@
 package ru.yandex.practicum.filmorate.storage.director.dao;
 
-import lombok.RequiredArgsConstructor;
+import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -17,7 +17,7 @@ import java.util.List;
 
 @Slf4j
 @Component
-@RequiredArgsConstructor
+@AllArgsConstructor
 public class DirectorDbStorage implements DirectorStorage {
     private final JdbcTemplate jdbcTemplate;
 
@@ -38,7 +38,7 @@ public class DirectorDbStorage implements DirectorStorage {
     }
 
     @Override
-    public Director getDirectorById(int id) {
+    public Director getDirectorById(Integer id) {
         SqlRowSet directorRowsSet = jdbcTemplate.queryForRowSet("SELECT * FROM DIRECTOR WHERE DIRECTOR_ID = ?", id);
         List<Director> director = directorParsing(directorRowsSet);
         if (director.size() == 1) {
@@ -64,7 +64,7 @@ public class DirectorDbStorage implements DirectorStorage {
     }
 
     @Override
-    public void deleteDirectorById(int id) {
+    public void deleteDirectorById(Integer id) {
         String sqlDeletePairs = "DELETE FROM FILM_DIRECTOR WHERE DIRECTOR_ID = ?";
         jdbcTemplate.update(sqlDeletePairs, id);
         String sqlDeleteDirector = "DELETE FROM DIRECTOR WHERE DIRECTOR_ID = ?";

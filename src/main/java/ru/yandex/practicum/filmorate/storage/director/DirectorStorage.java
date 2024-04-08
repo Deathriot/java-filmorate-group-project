@@ -11,11 +11,11 @@ public interface DirectorStorage {
 
     List<Director> getDirectors();
 
-    Director getDirectorById(int id);
+    Director getDirectorById(Integer id);
 
     Director updateDirector(Director director);
 
-    void deleteDirectorById(int id);
+    void deleteDirectorById(Integer id);
 
     List<Director> existDirector(List<Integer> directorToInt);
 
