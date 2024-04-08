@@ -1,5 +1,6 @@
 package ru.yandex.practicum.filmorate.storage.director.dao;
 
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -13,16 +14,13 @@ import ru.yandex.practicum.filmorate.storage.director.DirectorStorage;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.NoSuchElementException;
 
 @Slf4j
 @Component
+@RequiredArgsConstructor
 public class DirectorDbStorage implements DirectorStorage {
     private final JdbcTemplate jdbcTemplate;
 
-    public DirectorDbStorage(JdbcTemplate jdbcTemplate) {
-        this.jdbcTemplate = jdbcTemplate;
-    }
     @Override
     public Director createDirector(Director director) {
         SimpleJdbcInsert simpleJdbcInsert = new SimpleJdbcInsert(jdbcTemplate)
@@ -30,7 +28,7 @@ public class DirectorDbStorage implements DirectorStorage {
                 .usingGeneratedKeyColumns("DIRECTOR_ID");
         director.setId(simpleJdbcInsert.executeAndReturnKey(director.directorToMap()).intValue());
         log.info("В базе создан режиссёр с id {}", director.getId());
-        return director;
+        return getDirectorById(director.getId());
     }
 
     @Override
@@ -62,7 +60,7 @@ public class DirectorDbStorage implements DirectorStorage {
         } else {
             throw new NotFoundException("Режиссёр с id " + director.getId() + " не найден.");
         }
-        return director;
+        return getDirectorById(director.getId());
     }
 
     @Override
@@ -72,7 +70,7 @@ public class DirectorDbStorage implements DirectorStorage {
         String sqlDeleteDirector = "DELETE FROM DIRECTOR WHERE DIRECTOR_ID = ?";
         int linesDeleted = jdbcTemplate.update(sqlDeleteDirector, id);
         if (linesDeleted == 0)
-            throw new NoSuchElementException("Режиссёр с id " + id + "не найден.");
+            throw new NotFoundException("Режиссёр с id " + id + "не найден.");
     }
 
 

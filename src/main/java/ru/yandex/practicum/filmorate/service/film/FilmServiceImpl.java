@@ -8,6 +8,7 @@ import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.storage.director.DirectorStorage;
 import ru.yandex.practicum.filmorate.storage.film.FilmStorage;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -76,9 +77,12 @@ public class FilmServiceImpl implements FilmService {
     private void setDirectors(Film film) {
         try {
             if (film.getDirectors() != null) {
-                List<Integer> directorsInt = film.directorToInt();
-                List<Director> directors = directorStorage.existDirector(directorsInt);
-                if (directorsInt.size() != directors.size())
+                List<Integer> directorIds = new ArrayList<>();
+                for (Director director : film.getDirectors()) {
+                    directorIds.add(director.getId());
+                }
+                List<Director> directors = directorStorage.existDirector(directorIds);
+                if (directorIds.size() != directors.size())
                     throw new NoSuchElementException("Переданы некорректные id режиссёров.");
                 film.setDirectors(directors);
             }

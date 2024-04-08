@@ -2,7 +2,7 @@ package ru.yandex.practicum.filmorate.controller;
 
 import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.filmorate.model.Director;
-import ru.yandex.practicum.filmorate.service.DirectorService.DirectorService;
+import ru.yandex.practicum.filmorate.service.director.DirectorService;
 
 import javax.validation.Valid;
 import java.util.List;
