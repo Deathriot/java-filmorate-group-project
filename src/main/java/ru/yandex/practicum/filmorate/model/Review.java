@@ -10,14 +10,19 @@ import javax.validation.constraints.NotNull;
 @Builder
 public class Review {
     private Integer reviewId;
+
     @NotBlank
     @NotNull
     private String content;
+
     @NotNull
     private Boolean isPositive;
+
     @NotNull
     private Integer userId;
+
     @NotNull
     private Integer filmId;
+
     private Integer useful;
 }

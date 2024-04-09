@@ -1,7 +1,6 @@
 package ru.yandex.practicum.filmorate.storage.review.dao;
 
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Primary;
+import lombok.AllArgsConstructor;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.simple.SimpleJdbcInsert;
 import org.springframework.jdbc.support.rowset.SqlRowSet;
@@ -18,21 +17,14 @@ import java.sql.SQLException;
 import java.util.*;
 
 @Component
-@Primary
+@AllArgsConstructor
 public class ReviewDbStorage implements ReviewStorage {
     private final JdbcTemplate jdbcTemplate;
     private final UserStorage userStorage;
     private final FilmStorage filmStorage;
 
-    @Autowired
-    public ReviewDbStorage(JdbcTemplate jdbcTemplate, UserStorage userStorage, FilmStorage filmStorage) {
-        this.jdbcTemplate = jdbcTemplate;
-        this.userStorage = userStorage;
-        this.filmStorage = filmStorage;
-    }
-
     @Override
-    public Review create(Review review) {
+    public Review createReview(Review review) {
         userStorage.checkUserExist(review.getUserId());
         filmStorage.checkFilmExist(review.getFilmId());
 
@@ -40,20 +32,15 @@ public class ReviewDbStorage implements ReviewStorage {
                 .withTableName("REVIEWS")
                 .usingGeneratedKeyColumns("REVIEW_ID");
 
-        return get(simpleJdbcInsert.executeAndReturnKey(toMap(review)).intValue());
+        Integer reviewId = simpleJdbcInsert.executeAndReturnKey(toMap(review)).intValue();
+        return getReviewById(reviewId);
     }
 
     @Override
-    public Review update(Review review) {
+    public Review updateReview(Review review) {
         checkReviewExist(review.getReviewId());
-
-        // Для тестов (хотят именно 400, а не 404)
-        try {
-            userStorage.checkUserExist(review.getUserId());
-            filmStorage.checkFilmExist(review.getFilmId());
-        } catch (NotFoundException ex) {
-            throw new IncorrectParameterException(ex.getMessage());
-        }
+        userStorage.checkUserExist(review.getUserId());
+        filmStorage.checkFilmExist(review.getFilmId());
 
         String sql = "UPDATE REVIEWS SET CONTENT=?, IS_POSITIVE=? WHERE REVIEW_ID=?;";
 
@@ -62,11 +49,11 @@ public class ReviewDbStorage implements ReviewStorage {
                 review.getIsPositive(),
                 review.getReviewId());
 
-        return get(review.getReviewId());
+        return getReviewById(review.getReviewId());
     }
 
     @Override
-    public Review get(Integer id) {
+    public Review getReviewById(Integer id) {
         checkReviewExist(id);
         String sql = "SELECT * FROM REVIEWS WHERE REVIEW_ID=?;";
 
@@ -74,23 +61,20 @@ public class ReviewDbStorage implements ReviewStorage {
     }
 
     @Override
-    public Collection<Review> getAll(Integer filmId, Integer count) {
-        String sql;
+    public Collection<Review> getAllReviews(Integer count) {
+        String sql = "SELECT * FROM REVIEWS LIMIT ?;";
 
-        if (filmId == null) {
-            sql = "SELECT * FROM REVIEWS LIMIT ?;";
-        } else {
-            try {
-                filmStorage.checkFilmExist(filmId);
-            } catch (NotFoundException ex) {
-                throw new IncorrectParameterException(ex.getMessage());
-            }
-
-            sql = "SELECT * FROM REVIEWS WHERE FILM_ID = " + filmId + " LIMIT ?;";
-        }
-
-        // Сортировка на уровне sql запроса почему-то не работает
         List<Review> reviewList = jdbcTemplate.query(sql, (rs, num) -> makeReview(rs), count);
+        reviewList.sort(Comparator.comparingInt(Review::getUseful).reversed());
+        return reviewList;
+    }
+
+    @Override
+    public Collection<Review> getAllReviewsOfFilm(Integer filmId, Integer count) {
+        filmStorage.checkFilmExist(filmId);
+        String sql = "SELECT * FROM REVIEWS WHERE FILM_ID=? LIMIT ?;";
+
+        List<Review> reviewList = jdbcTemplate.query(sql, (rs, num) -> makeReview(rs), filmId, count);
         reviewList.sort(Comparator.comparingInt(Review::getUseful).reversed());
         return reviewList;
     }
@@ -103,75 +87,40 @@ public class ReviewDbStorage implements ReviewStorage {
     }
 
     @Override
-    public void putLike(Integer id, Integer userId) {
-        changeRate(id, userId, true, false);
-    }
-
-    @Override
-    public void putDislike(Integer id, Integer userId) {
-        changeRate(id, userId, false, false);
-    }
-
-    @Override
-    public void deleteLike(Integer id, Integer userId) {
-        changeRate(id, userId, true, true);
-    }
-
-    @Override
-    public void deleteDislike(Integer id, Integer userId) {
-        changeRate(id, userId, false, true);
-    }
-
-    // 4 метода уж слишком однообразные, нужно их как-то сократить, например вот так..
-    private void changeRate(Integer reviewId, Integer userId, boolean isPositive, boolean isDelete) {
-        checkReviewExist(reviewId);
-        try {
-            userStorage.checkUserExist(userId);
-        } catch (NotFoundException ex) {
-            throw new IncorrectParameterException(ex.getMessage());
-        }
-
+    public void deleteRate(Integer reviewId, Integer userId, boolean isPositive) {
         String sql = "SELECT IS_POSITIVE FROM USER_REVIEW_RATE WHERE REVIEW_ID=? AND USER_ID=?";
         SqlRowSet userRate = jdbcTemplate.queryForRowSet(sql, reviewId, userId);
 
-        String sqlReviewUseful = "SELECT USEFUL FROM REVIEWS WHERE REVIEW_ID=?";
-        Integer useful = jdbcTemplate.queryForObject(sqlReviewUseful, (rs, num) -> rs.getInt("USEFUL"), reviewId);
+        if (!userRate.next())
+            throw new IncorrectParameterException("Отзыву id = " + reviewId +
+                    ", пользователь id=" + userId + " не ставил оценку");
 
-        if (!isDelete) {
-            if (userRate.next())
-                throw new IncorrectParameterException("Отзыву id = " + reviewId +
-                        ", пользователь id=" + userId + " уже ставил оценку");
+        if (isPositive != userRate.getBoolean("IS_POSITIVE"))
+            throw new IncorrectParameterException("Отзыву id = " + reviewId +
+                    ", пользователь id=" + userId + " не ставил такую оценку");
 
-            if (isPositive) {
-                useful++;
-            } else {
-                useful--;
-            }
+        String sqlDelete = "DELETE FROM USER_REVIEW_RATE WHERE USER_ID=? AND REVIEW_ID=?;";
+        jdbcTemplate.update(sqlDelete, userId, reviewId);
+    }
 
-            String sqlUpdateUserLikes = "INSERT INTO USER_REVIEW_RATE (USER_ID, REVIEW_ID, IS_POSITIVE) VALUES(?, ?, ?);";
-            jdbcTemplate.update(sqlUpdateUserLikes, userId, reviewId, isPositive);
+    @Override
+    public void addRate(Integer reviewId, Integer userId, boolean isPositive) {
+        String sql = "SELECT IS_POSITIVE FROM USER_REVIEW_RATE WHERE REVIEW_ID=? AND USER_ID=?";
+        SqlRowSet userRate = jdbcTemplate.queryForRowSet(sql, reviewId, userId);
 
-        } else {
-            if (!userRate.next())
-                throw new IncorrectParameterException("Отзыву id = " + reviewId +
-                        ", пользователь id=" + userId + " не ставил оценку");
+        if (userRate.next())
+            throw new IncorrectParameterException("Отзыву id = " + reviewId +
+                    ", пользователь id=" + userId + " уже ставил оценку");
 
-            if (isPositive != userRate.getBoolean("IS_POSITIVE"))
-                throw new IncorrectParameterException("Отзыву id = " + reviewId +
-                        ", пользователь id=" + userId + " не ставил такую оценку");
+        String sqlUpdateUserLikes = "INSERT INTO USER_REVIEW_RATE (USER_ID, REVIEW_ID, IS_POSITIVE) VALUES(?, ?, ?);";
+        jdbcTemplate.update(sqlUpdateUserLikes, userId, reviewId, isPositive);
+    }
 
-            if (isPositive) {
-                useful--;
-            } else {
-                useful++;
-            }
-
-            String sqlDelete = "DELETE FROM USER_REVIEW_RATE WHERE USER_ID=? AND REVIEW_ID=?;";
-            jdbcTemplate.update(sqlDelete, userId, reviewId);
-        }
-
-        String sqlUsefulUpdate = "UPDATE REVIEWS SET USEFUL=? WHERE REVIEW_ID=?";
-        jdbcTemplate.update(sqlUsefulUpdate, useful, reviewId);
+    //Через update изменять useful нельзя (что логично)
+    @Override
+    public void changeReviewUseful(Integer reviewId, Integer useful) {
+        String sql = "UPDATE REVIEWS SET USEFUL=? WHERE REVIEW_ID=?;";
+        jdbcTemplate.update(sql, useful, reviewId);
     }
 
     private void checkReviewExist(Integer reviewId) {

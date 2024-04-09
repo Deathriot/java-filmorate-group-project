@@ -18,7 +18,7 @@ public class ReviewController {
 
     @PostMapping
     public Review createReview(@RequestBody @Valid Review review) {
-        Review review1 = reviewService.create(review);
+        Review review1 = reviewService.createReview(review);
         log.info("createReview, id = " + review1.getReviewId());
         return review1;
     }
@@ -26,7 +26,7 @@ public class ReviewController {
     @PutMapping
     public Review updateReview(@RequestBody @Valid Review review) {
         log.info("updateReview, id = " + review.getReviewId());
-        return reviewService.update(review);
+        return reviewService.updateReview(review);
     }
 
     @DeleteMapping("/{id}")
@@ -38,14 +38,14 @@ public class ReviewController {
     @GetMapping("/{id}")
     public Review findReview(@PathVariable Integer id) {
         log.info("findReview, id = " + id);
-        return reviewService.get(id);
+        return reviewService.getReviewById(id);
     }
 
     @GetMapping
-    public Collection<Review> getReviews(@RequestParam(required = false) Integer filmId,
+    public Collection<Review> getReviewsOfFilm(@RequestParam(required = false) Integer filmId,
                                          @RequestParam(defaultValue = "10") Integer count) {
         log.info("getReviews, filmId = " + filmId + ", count = " + count);
-        return reviewService.getAll(filmId, count);
+        return reviewService.getAllReviewsOfFilm(filmId, count);
     }
 
     @PutMapping("/{id}/like/{userId}")
