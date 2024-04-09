@@ -60,4 +60,9 @@ public class UserController {
     public void deleteFriend(@PathVariable Integer id, @PathVariable Integer friendId) {
         userService.deleteFriend(id, friendId);
     }
+
+    @GetMapping("/{id}/recommendations")
+    public Collection<Film> getUserRecommendations(@PathVariable("id") Integer userId) {
+        return userService.getUserRecommendations(userId);
+    }
 }
