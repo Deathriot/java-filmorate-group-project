@@ -3,6 +3,7 @@ package ru.yandex.practicum.filmorate.service.film;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import ru.yandex.practicum.filmorate.exception.IncorrectParameterException;
 import ru.yandex.practicum.filmorate.model.Director;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.storage.director.DirectorStorage;
@@ -106,5 +107,20 @@ public class FilmServiceImpl implements FilmService {
     @Override
     public Collection<Film> findCommonFilms(Integer userId, Integer friendId) {
         return filmStorage.findCommonFilms(userId, friendId);
+    }
+
+    @Override
+    public Collection<Film> getFilmsBy(String query, String by) {
+        switch (by.toLowerCase().strip()) {
+            case "director":
+                return filmStorage.findFilmsByDirector(query);
+            case "title":
+                return filmStorage.findFilmsByTitle(query);
+            case "title,director":
+            case "director,title":
+                return filmStorage.findFilmsByDirectorAndTitle(query);
+            default:
+                throw new IncorrectParameterException("Incorrect params. query:" + query + " by:" + by);
+        }
     }
 }

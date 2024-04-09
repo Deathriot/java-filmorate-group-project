@@ -28,4 +28,6 @@ public interface FilmService {
     Collection<Film> getPopular(Integer count, Integer genreId, String year);
 
     Collection<Film> findCommonFilms(Integer userId, Integer friendId);
+
+    Collection<Film> getFilmsBy(String query, String by);
 }

@@ -38,4 +38,10 @@ public interface FilmStorage {
     List<Film> getByDirectorSortByYear(int id);
 
     Collection<Film> getUserRecommendations(Integer userId);
+
+    Collection<Film> findFilmsByDirector(String query);
+
+    Collection<Film> findFilmsByTitle(String query);
+
+    Collection<Film> findFilmsByDirectorAndTitle(String query);
 }

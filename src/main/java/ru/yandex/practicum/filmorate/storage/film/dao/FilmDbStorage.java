@@ -213,6 +213,49 @@ public class FilmDbStorage implements FilmStorage {
     }
 
     @Override
+    public Collection<Film> findFilmsByDirector(String query) {
+        String lowerQuery = "%" + query.toLowerCase() + "%";
+        String sql = "SELECT *, COUNT(UF.FILM_ID) AS LIKES " +
+                "FROM FILMS F " +
+                "LEFT OUTER JOIN RATING AS R ON R.RATING_ID = F.RATING " +
+                "LEFT OUTER JOIN FILM_DIRECTOR AS FD ON FD.FILM_ID = F.FILM_ID " +
+                "LEFT OUTER JOIN DIRECTOR AS D ON D.DIRECTOR_ID = FD.DIRECTOR_ID " +
+                "LEFT JOIN USER_FILM AS UF ON UF.FILM_ID = F.FILM_ID " +
+                "WHERE LOWER(D.NAME) like ? " +
+                "GROUP BY F.FILM_ID " +
+                "ORDER BY LIKES DESC";
+        return jdbcTemplate.query(sql, (rs, rowNum) -> makeFilm(rs), lowerQuery);
+    }
+
+    @Override
+    public Collection<Film> findFilmsByTitle(String query) {
+        String lowerQuery = "%" + query.toLowerCase() + "%";
+        String sql = "SELECT *, COUNT(UF.FILM_ID) AS LIKES " +
+                "FROM FILMS F " +
+                "LEFT OUTER JOIN RATING AS R ON R.RATING_ID = F.RATING " +
+                "LEFT JOIN USER_FILM AS UF ON UF.FILM_ID = F.FILM_ID " +
+                "WHERE LOWER(TITLE) LIKE ? " +
+                "GROUP BY F.FILM_ID " +
+                "ORDER BY LIKES DESC";
+        return jdbcTemplate.query(sql, (rs, rowNum) -> makeFilm(rs), lowerQuery);
+    }
+
+    @Override
+    public Collection<Film> findFilmsByDirectorAndTitle(String query) {
+        String lowerQuery = "%" + query.toLowerCase() + "%";
+        String sql = "SELECT *, COUNT(UF.FILM_ID) AS LIKES " +
+                "FROM FILMS F " +
+                "LEFT OUTER JOIN RATING AS R ON R.RATING_ID = F.RATING " +
+                "LEFT OUTER JOIN FILM_DIRECTOR AS FD ON FD.FILM_ID = F.FILM_ID " +
+                "LEFT OUTER JOIN DIRECTOR AS D ON D.DIRECTOR_ID = FD.DIRECTOR_ID " +
+                "LEFT JOIN USER_FILM AS UF ON UF.FILM_ID = F.FILM_ID " +
+                "WHERE LOWER(TITLE) like ? OR LOWER(D.NAME) like ?" +
+                "GROUP BY F.FILM_ID " +
+                "ORDER BY LIKES DESC";
+        return jdbcTemplate.query(sql, (rs, rowNum) -> makeFilm(rs), lowerQuery, lowerQuery);
+    }
+
+    @Override
     public void checkFilmExist(Integer id) {
         String sqlQuery = "SELECT COUNT(*) FROM FILMS WHERE FILM_ID=? ";
         Optional.ofNullable(jdbcTemplate.queryForObject(sqlQuery, Integer.class, id))
