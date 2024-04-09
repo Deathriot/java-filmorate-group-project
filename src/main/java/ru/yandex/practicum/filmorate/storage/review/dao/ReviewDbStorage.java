@@ -62,21 +62,17 @@ public class ReviewDbStorage implements ReviewStorage {
 
     @Override
     public Collection<Review> getAllReviews(Integer count) {
-        String sql = "SELECT * FROM REVIEWS LIMIT ?;";
+        String sql = "SELECT * FROM REVIEWS ORDER BY USEFUL DESC LIMIT ?;";
 
-        List<Review> reviewList = jdbcTemplate.query(sql, (rs, num) -> makeReview(rs), count);
-        reviewList.sort(Comparator.comparingInt(Review::getUseful).reversed());
-        return reviewList;
+        return jdbcTemplate.query(sql, (rs, num) -> makeReview(rs), count);
     }
 
     @Override
     public Collection<Review> getAllReviewsOfFilm(Integer filmId, Integer count) {
         filmStorage.checkFilmExist(filmId);
-        String sql = "SELECT * FROM REVIEWS WHERE FILM_ID=? LIMIT ?;";
+        String sql = "SELECT * FROM REVIEWS WHERE FILM_ID=? ORDER BY USEFUL DESC LIMIT ?;";
 
-        List<Review> reviewList = jdbcTemplate.query(sql, (rs, num) -> makeReview(rs), filmId, count);
-        reviewList.sort(Comparator.comparingInt(Review::getUseful).reversed());
-        return reviewList;
+        return jdbcTemplate.query(sql, (rs, num) -> makeReview(rs), filmId, count);
     }
 
     @Override
