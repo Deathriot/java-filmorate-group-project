@@ -1,6 +1,6 @@
 package ru.yandex.practicum.filmorate.service.review;
 
-import lombok.RequiredArgsConstructor;
+import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.model.Review;
 import ru.yandex.practicum.filmorate.storage.review.ReviewStorage;
@@ -8,28 +8,32 @@ import ru.yandex.practicum.filmorate.storage.review.ReviewStorage;
 import java.util.Collection;
 
 @Service
-@RequiredArgsConstructor
+@AllArgsConstructor
 public class ReviewServiceImpl implements ReviewService {
     private final ReviewStorage storage;
 
     @Override
-    public Review create(Review review) {
-        return storage.create(review);
+    public Review createReview(Review review) {
+        return storage.createReview(review);
     }
 
     @Override
-    public Review update(Review review) {
-        return storage.update(review);
+    public Review updateReview(Review review) {
+        return storage.updateReview(review);
     }
 
     @Override
-    public Review get(Integer id) {
-        return storage.get(id);
+    public Review getReviewById(Integer id) {
+        return storage.getReviewById(id);
     }
 
     @Override
-    public Collection<Review> getAll(Integer filmId, Integer count) {
-        return storage.getAll(filmId, count);
+    public Collection<Review> getAllReviewsOfFilm(Integer filmId, Integer count) {
+        if (filmId == null) {
+            return storage.getAllReviews(count);
+        }
+
+        return storage.getAllReviewsOfFilm(filmId, count);
     }
 
     @Override
@@ -39,21 +43,45 @@ public class ReviewServiceImpl implements ReviewService {
 
     @Override
     public void putLike(Integer id, Integer userId) {
-        storage.putLike(id, userId);
+        storage.addRate(id, userId, true);
+
+        Review review = storage.getReviewById(id);
+        Integer useful = review.getUseful();
+        useful++;
+
+        storage.changeReviewUseful(id, useful);
     }
 
     @Override
     public void putDislike(Integer id, Integer userId) {
-        storage.putDislike(id, userId);
+        storage.addRate(id, userId, false);
+
+        Review review = storage.getReviewById(id);
+        Integer useful = review.getUseful();
+        useful--;
+
+        storage.changeReviewUseful(id, useful);
     }
 
     @Override
     public void deleteLike(Integer id, Integer userId) {
-        storage.deleteLike(id, userId);
+        storage.deleteRate(id, userId, true);
+
+        Review review = storage.getReviewById(id);
+        Integer useful = review.getUseful();
+        useful--;
+
+        storage.changeReviewUseful(id, useful);
     }
 
     @Override
     public void deleteDislike(Integer id, Integer userId) {
-        storage.deleteDislike(id, userId);
+        storage.deleteRate(id, userId, false);
+
+        Review review = storage.getReviewById(id);
+        Integer useful = review.getUseful();
+        useful++;
+
+        storage.changeReviewUseful(id, useful);
     }
 }

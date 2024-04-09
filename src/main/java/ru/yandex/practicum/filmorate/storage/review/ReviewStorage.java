@@ -5,21 +5,21 @@ import ru.yandex.practicum.filmorate.model.Review;
 import java.util.Collection;
 
 public interface ReviewStorage {
-    Review create(Review review);
+    Review createReview(Review review);
 
-    Review update(Review review);
+    Review updateReview(Review review);
 
-    Review get(Integer id);
+    Review getReviewById(Integer reviewId);
 
-    Collection<Review> getAll(Integer filmId, Integer count);
+    Collection<Review> getAllReviews(Integer count);
 
-    void deleteReview(Integer id);
+    Collection<Review> getAllReviewsOfFilm(Integer filmId, Integer count);
 
-    void putLike(Integer id, Integer userId);
+    void deleteReview(Integer reviewId);
 
-    void putDislike(Integer id, Integer userId);
+    void deleteRate(Integer reviewId, Integer userId, boolean isPositive);
 
-    void deleteLike(Integer id, Integer userId);
+    void addRate(Integer reviewId, Integer userId, boolean isPositive);
 
-    void deleteDislike(Integer id, Integer userId);
+    void changeReviewUseful(Integer reviewId, Integer useful);
 }
