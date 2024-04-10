@@ -1,7 +1,8 @@
 # java-filmorate
 
 Template repository for Filmorate project.
-![ER-diagram.png](ER-diagram.png)
+![ER-Diagram](https://github.com/Deathriot/java-filmorate-group-project/assets/127441142/5a790123-379f-43b7-a88f-41fda5502335)
+
 
 Список таблиц
 FILMS - список фильмов
