@@ -6,7 +6,10 @@ import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.exception.IncorrectParameterException;
 import ru.yandex.practicum.filmorate.model.Director;
 import ru.yandex.practicum.filmorate.model.Film;
+import ru.yandex.practicum.filmorate.model.event.EventOperation;
+import ru.yandex.practicum.filmorate.model.event.EventType;
 import ru.yandex.practicum.filmorate.storage.director.DirectorStorage;
+import ru.yandex.practicum.filmorate.storage.event.EventStorage;
 import ru.yandex.practicum.filmorate.storage.film.FilmStorage;
 
 import java.util.ArrayList;
@@ -21,6 +24,7 @@ public class FilmServiceImpl implements FilmService {
 
     private final FilmStorage filmStorage;
     private final DirectorStorage directorStorage;
+    private final EventStorage eventStorage;
 
     @Override
     public Collection<Film> getAllFilms() {
@@ -68,11 +72,13 @@ public class FilmServiceImpl implements FilmService {
     @Override
     public void addLike(Integer id, Integer userId) {
         filmStorage.addLike(id, userId);
+        eventStorage.addEvent(EventType.LIKE, EventOperation.ADD, userId, id);
     }
 
     @Override
     public void deleteLike(Integer id, Integer userId) {
         filmStorage.deleteLike(id, userId);
+        eventStorage.addEvent(EventType.LIKE, EventOperation.REMOVE, userId, id);
     }
 
     private void setDirectors(Film film) {
@@ -84,11 +90,11 @@ public class FilmServiceImpl implements FilmService {
                 }
                 List<Director> directors = directorStorage.existDirector(directorIds);
                 if (directorIds.size() != directors.size())
-                    throw new NoSuchElementException("Переданы некорректные id режиссёров.");
+                    throw new NoSuchElementException("Wrong director id received.");
                 film.setDirectors(directors);
             }
         } catch (NoSuchElementException e) {
-            throw new IllegalArgumentException("Фильм с названием - " + film.getName() + " не создан." + e.getMessage());
+            throw new IllegalArgumentException("Film - " + film.getName() + " not created." + e.getMessage());
         }
     }
 
@@ -100,7 +106,7 @@ public class FilmServiceImpl implements FilmService {
         } else if (sortBy.equals("likes")) {
             return filmStorage.getByDirectorSortByLikes(id);
         } else {
-            throw new IllegalArgumentException("Неверный формат сортировки");
+            throw new IllegalArgumentException("Wrong sort format");
         }
     }
 

@@ -14,7 +14,9 @@ import ru.yandex.practicum.filmorate.storage.user.UserStorage;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.*;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
 
 @Component
 @AllArgsConstructor
@@ -78,7 +80,6 @@ public class ReviewDbStorage implements ReviewStorage {
     @Override
     public void deleteReview(Integer id) {
         checkReviewExist(id);
-
         jdbcTemplate.update("DELETE FROM REVIEWS WHERE REVIEW_ID=?", id);
     }
 
@@ -88,12 +89,10 @@ public class ReviewDbStorage implements ReviewStorage {
         SqlRowSet userRate = jdbcTemplate.queryForRowSet(sql, reviewId, userId);
 
         if (!userRate.next())
-            throw new IncorrectParameterException("Отзыву id = " + reviewId +
-                    ", пользователь id=" + userId + " не ставил оценку");
+            throw new IncorrectParameterException("User id=" + userId + " do not rate this review id=" + reviewId);
 
         if (isPositive != userRate.getBoolean("IS_POSITIVE"))
-            throw new IncorrectParameterException("Отзыву id = " + reviewId +
-                    ", пользователь id=" + userId + " не ставил такую оценку");
+            throw new IncorrectParameterException("User id=" + userId + " do not rate this review id=" + reviewId);
 
         String sqlDelete = "DELETE FROM USER_REVIEW_RATE WHERE USER_ID=? AND REVIEW_ID=?;";
         jdbcTemplate.update(sqlDelete, userId, reviewId);
@@ -104,9 +103,9 @@ public class ReviewDbStorage implements ReviewStorage {
         String sql = "SELECT IS_POSITIVE FROM USER_REVIEW_RATE WHERE REVIEW_ID=? AND USER_ID=?";
         SqlRowSet userRate = jdbcTemplate.queryForRowSet(sql, reviewId, userId);
 
+
         if (userRate.next())
-            throw new IncorrectParameterException("Отзыву id = " + reviewId +
-                    ", пользователь id=" + userId + " уже ставил оценку");
+            throw new IncorrectParameterException("User id=" + userId + " already rate this review id=" + reviewId);
 
         String sqlUpdateUserLikes = "INSERT INTO USER_REVIEW_RATE (USER_ID, REVIEW_ID, IS_POSITIVE) VALUES(?, ?, ?);";
         jdbcTemplate.update(sqlUpdateUserLikes, userId, reviewId, isPositive);
@@ -124,7 +123,7 @@ public class ReviewDbStorage implements ReviewStorage {
         SqlRowSet sqlRowSet = jdbcTemplate.queryForRowSet(sql, reviewId);
 
         if (!sqlRowSet.next()) {
-            throw new NotFoundException("Отзыва с id = " + reviewId + " не существует");
+            throw new NotFoundException("Review with id=" + reviewId + " does not exist");
         }
     }
 

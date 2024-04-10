@@ -127,7 +127,7 @@ public class FilmDbStorage implements FilmStorage {
     public void addLike(Integer filmId, Integer userId) {
         checkFilmExist(filmId);
         userStorage.checkUserExist(userId);
-        String sql = "INSERT INTO USER_FILM (USER_ID, FILM_ID) VALUES(?, ?);";
+        String sql = "MERGE INTO USER_FILM (USER_ID, FILM_ID) VALUES(?, ?);";
         jdbcTemplate.update(sql, userId, filmId);
         log.info("Like added to film with id={}.", filmId);
     }
@@ -138,7 +138,7 @@ public class FilmDbStorage implements FilmStorage {
         userStorage.checkUserExist(userId);
         String sql = "DELETE FROM USER_FILM WHERE FILM_ID=? AND USER_ID=?;";
         jdbcTemplate.update(sql, filmId, userId);
-        log.info("Like remove.");
+        log.info("Like removed from film with id={}.", filmId);
     }
 
     @Override
@@ -215,22 +215,22 @@ public class FilmDbStorage implements FilmStorage {
     @Override
     public Collection<Film> findFilmsByDirector(String query) {
         String lowerQuery = "%" + query.toLowerCase() + "%";
-        String sql = "SELECT *, COUNT(UF.FILM_ID) AS LIKES " +
+        String sql = "SELECT DISTINCT F.*, R.*, COUNT(UF.FILM_ID) AS LIKES, D.NAME " +
                 "FROM FILMS F " +
                 "LEFT OUTER JOIN RATING AS R ON R.RATING_ID = F.RATING " +
                 "LEFT OUTER JOIN FILM_DIRECTOR AS FD ON FD.FILM_ID = F.FILM_ID " +
                 "LEFT OUTER JOIN DIRECTOR AS D ON D.DIRECTOR_ID = FD.DIRECTOR_ID " +
                 "LEFT JOIN USER_FILM AS UF ON UF.FILM_ID = F.FILM_ID " +
                 "WHERE LOWER(D.NAME) like ? " +
-                "GROUP BY F.FILM_ID " +
-                "ORDER BY LIKES DESC";
+                "GROUP BY F.FILM_ID, D.NAME " +
+                "ORDER BY LIKES DESC, D.NAME DESC";
         return jdbcTemplate.query(sql, (rs, rowNum) -> makeFilm(rs), lowerQuery);
     }
 
     @Override
     public Collection<Film> findFilmsByTitle(String query) {
         String lowerQuery = "%" + query.toLowerCase() + "%";
-        String sql = "SELECT *, COUNT(UF.FILM_ID) AS LIKES " +
+        String sql = "SELECT DISTINCT F.*, R.*, COUNT(UF.FILM_ID) AS LIKES " +
                 "FROM FILMS F " +
                 "LEFT OUTER JOIN RATING AS R ON R.RATING_ID = F.RATING " +
                 "LEFT JOIN USER_FILM AS UF ON UF.FILM_ID = F.FILM_ID " +
@@ -243,15 +243,15 @@ public class FilmDbStorage implements FilmStorage {
     @Override
     public Collection<Film> findFilmsByDirectorAndTitle(String query) {
         String lowerQuery = "%" + query.toLowerCase() + "%";
-        String sql = "SELECT *, COUNT(UF.FILM_ID) AS LIKES " +
+        String sql = "SELECT DISTINCT F.*, R.*, COUNT(UF.FILM_ID) AS LIKES, D.NAME " +
                 "FROM FILMS F " +
                 "LEFT OUTER JOIN RATING AS R ON R.RATING_ID = F.RATING " +
                 "LEFT OUTER JOIN FILM_DIRECTOR AS FD ON FD.FILM_ID = F.FILM_ID " +
                 "LEFT OUTER JOIN DIRECTOR AS D ON D.DIRECTOR_ID = FD.DIRECTOR_ID " +
                 "LEFT JOIN USER_FILM AS UF ON UF.FILM_ID = F.FILM_ID " +
                 "WHERE LOWER(TITLE) like ? OR LOWER(D.NAME) like ?" +
-                "GROUP BY F.FILM_ID " +
-                "ORDER BY LIKES DESC";
+                "GROUP BY F.FILM_ID, D.NAME " +
+                "ORDER BY LIKES DESC, D.NAME DESC";
         return jdbcTemplate.query(sql, (rs, rowNum) -> makeFilm(rs), lowerQuery, lowerQuery);
     }
 

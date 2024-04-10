@@ -13,7 +13,9 @@ import ru.yandex.practicum.filmorate.model.Director;
 import ru.yandex.practicum.filmorate.storage.director.DirectorStorage;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Slf4j
 @Component
@@ -26,8 +28,8 @@ public class DirectorDbStorage implements DirectorStorage {
         SimpleJdbcInsert simpleJdbcInsert = new SimpleJdbcInsert(jdbcTemplate)
                 .withTableName("DIRECTOR")
                 .usingGeneratedKeyColumns("DIRECTOR_ID");
-        director.setId(simpleJdbcInsert.executeAndReturnKey(director.directorToMap()).intValue());
-        log.info("В базе создан режиссёр с id {}", director.getId());
+        director.setId(simpleJdbcInsert.executeAndReturnKey(directorToMap(director)).intValue());
+        log.info("Director was created with id:{}", director.getId());
         return getDirectorById(director.getId());
     }
 
@@ -44,8 +46,8 @@ public class DirectorDbStorage implements DirectorStorage {
         if (director.size() == 1) {
             return director.get(0);
         } else {
-            log.info("Режиссёр с id {} не найден.", id);
-            throw new NotFoundException("Режиссёр с id " + id + " не найден.");
+            log.info("Can not find director id:{}.", id);
+            throw new NotFoundException("Can not find director id:{}." + id);
         }
     }
 
@@ -56,9 +58,9 @@ public class DirectorDbStorage implements DirectorStorage {
                 " WHERE DIRECTOR_ID = ?";
         int linesChanged = jdbcTemplate.update(sqlQuery, director.getName(), director.getId());
         if (linesChanged > 0) {
-            log.info("Обновлены данные режиссёра с id {} и именем {}", director.getId(), director.getName());
+            log.info("Director id:{} name:{} updated", director.getId(), director.getName());
         } else {
-            throw new NotFoundException("Режиссёр с id " + director.getId() + " не найден.");
+            throw new NotFoundException("Can not find director id:" + director.getId());
         }
         return getDirectorById(director.getId());
     }
@@ -70,7 +72,7 @@ public class DirectorDbStorage implements DirectorStorage {
         String sqlDeleteDirector = "DELETE FROM DIRECTOR WHERE DIRECTOR_ID = ?";
         int linesDeleted = jdbcTemplate.update(sqlDeleteDirector, id);
         if (linesDeleted == 0)
-            throw new NotFoundException("Режиссёр с id " + id + "не найден.");
+            throw new NotFoundException("Can not find director id:" + id);
     }
 
 
@@ -82,19 +84,28 @@ public class DirectorDbStorage implements DirectorStorage {
 
         return namedParameterJdbcTemplate.query(
                 sqlQuery, mapSqlParameterSource,
-                (rs, rowNow) -> new Director(rs.getInt("DIRECTOR_ID"), rs.getString("NAME")));
+                (rs, rowNow) -> Director.builder()
+                        .id(rs.getInt("DIRECTOR_ID"))
+                        .name(rs.getString("NAME"))
+                        .build());
     }
-
 
     @Override
     public List<Director> directorParsing(SqlRowSet dirRows) {
         List<Director> directors = new ArrayList<>();
         while (dirRows.next()) {
-            Director director = new Director(
-                    dirRows.getInt("DIRECTOR_ID"),
-                    dirRows.getString("NAME"));
+            Director director = Director.builder()
+                    .id(dirRows.getInt("DIRECTOR_ID"))
+                    .name(dirRows.getString("NAME"))
+                    .build();
             directors.add(director);
         }
         return directors;
+    }
+
+    private Map<String, Object> directorToMap(Director director) {
+        Map<String, Object> values = new HashMap<>();
+        values.put("NAME", director.getName());
+        return values;
     }
 }
