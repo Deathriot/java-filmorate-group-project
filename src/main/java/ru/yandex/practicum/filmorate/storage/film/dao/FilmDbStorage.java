@@ -215,27 +215,27 @@ public class FilmDbStorage implements FilmStorage {
     @Override
     public Collection<Film> findFilmsByDirector(String query) {
         String lowerQuery = "%" + query.toLowerCase() + "%";
-        String sql = "SELECT *, COUNT(UF.FILM_ID) AS LIKES " +
+        String sql = "SELECT DISTINCT F.*, R.*, COUNT(UF.FILM_ID) AS LIKES, D.NAME " +
                 "FROM FILMS F " +
                 "LEFT OUTER JOIN RATING AS R ON R.RATING_ID = F.RATING " +
-                "LEFT JOIN USER_FILM AS UF ON UF.FILM_ID = F.FILM_ID " +
                 "LEFT OUTER JOIN FILM_DIRECTOR AS FD ON FD.FILM_ID = F.FILM_ID " +
                 "LEFT OUTER JOIN DIRECTOR AS D ON D.DIRECTOR_ID = FD.DIRECTOR_ID " +
+                "LEFT JOIN USER_FILM AS UF ON UF.FILM_ID = F.FILM_ID " +
                 "WHERE LOWER(D.NAME) like ? " +
-                "GROUP BY F.FILM_ID, UF.USER_ID " +
-                "ORDER BY LIKES DESC";
+                "GROUP BY F.FILM_ID, D.NAME " +
+                "ORDER BY LIKES DESC, D.NAME DESC";
         return jdbcTemplate.query(sql, (rs, rowNum) -> makeFilm(rs), lowerQuery);
     }
 
     @Override
     public Collection<Film> findFilmsByTitle(String query) {
         String lowerQuery = "%" + query.toLowerCase() + "%";
-        String sql = "SELECT *, COUNT(UF.FILM_ID) AS LIKES " +
+        String sql = "SELECT DISTINCT F.*, R.*, COUNT(UF.FILM_ID) AS LIKES " +
                 "FROM FILMS F " +
                 "LEFT OUTER JOIN RATING AS R ON R.RATING_ID = F.RATING " +
                 "LEFT JOIN USER_FILM AS UF ON UF.FILM_ID = F.FILM_ID " +
                 "WHERE LOWER(TITLE) LIKE ? " +
-                "GROUP BY F.FILM_ID, UF.USER_ID " +
+                "GROUP BY F.FILM_ID " +
                 "ORDER BY LIKES DESC";
         return jdbcTemplate.query(sql, (rs, rowNum) -> makeFilm(rs), lowerQuery);
     }
@@ -243,15 +243,15 @@ public class FilmDbStorage implements FilmStorage {
     @Override
     public Collection<Film> findFilmsByDirectorAndTitle(String query) {
         String lowerQuery = "%" + query.toLowerCase() + "%";
-        String sql = "SELECT *, COUNT(UF.FILM_ID) AS LIKES " +
+        String sql = "SELECT DISTINCT F.*, R.*, COUNT(UF.FILM_ID) AS LIKES, D.NAME " +
                 "FROM FILMS F " +
                 "LEFT OUTER JOIN RATING AS R ON R.RATING_ID = F.RATING " +
-                "LEFT JOIN USER_FILM AS UF ON UF.FILM_ID = F.FILM_ID " +
                 "LEFT OUTER JOIN FILM_DIRECTOR AS FD ON FD.FILM_ID = F.FILM_ID " +
                 "LEFT OUTER JOIN DIRECTOR AS D ON D.DIRECTOR_ID = FD.DIRECTOR_ID " +
-                "WHERE LOWER(F.TITLE) like ? OR LOWER(D.NAME) like ?" +
-                "GROUP BY F.FILM_ID, UF.USER_ID " +
-                "ORDER BY UF.FILM_ID DESC";
+                "LEFT JOIN USER_FILM AS UF ON UF.FILM_ID = F.FILM_ID " +
+                "WHERE LOWER(TITLE) like ? OR LOWER(D.NAME) like ?" +
+                "GROUP BY F.FILM_ID, D.NAME " +
+                "ORDER BY LIKES DESC, D.NAME DESC";
         return jdbcTemplate.query(sql, (rs, rowNum) -> makeFilm(rs), lowerQuery, lowerQuery);
     }
 
