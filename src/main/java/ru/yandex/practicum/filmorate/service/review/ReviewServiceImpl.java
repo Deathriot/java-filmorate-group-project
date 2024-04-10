@@ -3,6 +3,9 @@ package ru.yandex.practicum.filmorate.service.review;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.model.Review;
+import ru.yandex.practicum.filmorate.model.event.EventOperation;
+import ru.yandex.practicum.filmorate.model.event.EventType;
+import ru.yandex.practicum.filmorate.storage.event.EventStorage;
 import ru.yandex.practicum.filmorate.storage.review.ReviewStorage;
 
 import java.util.Collection;
@@ -11,15 +14,20 @@ import java.util.Collection;
 @AllArgsConstructor
 public class ReviewServiceImpl implements ReviewService {
     private final ReviewStorage storage;
+    private final EventStorage eventStorage;
 
     @Override
     public Review createReview(Review review) {
-        return storage.createReview(review);
+        Review review1 = storage.createReview(review);
+        eventStorage.addEvent(EventType.REVIEW, EventOperation.ADD, review1.getUserId(), review1.getReviewId());
+        return review1;
     }
 
     @Override
     public Review updateReview(Review review) {
-        return storage.updateReview(review);
+        Review review1 = storage.updateReview(review);
+        eventStorage.addEvent(EventType.REVIEW, EventOperation.UPDATE, review1.getUserId(), review1.getReviewId());
+        return review1;
     }
 
     @Override
@@ -38,6 +46,7 @@ public class ReviewServiceImpl implements ReviewService {
 
     @Override
     public void deleteReview(Integer id) {
+        eventStorage.addEvent(EventType.REVIEW, EventOperation.REMOVE, getReviewById(id).getUserId(), id);
         storage.deleteReview(id);
     }
 

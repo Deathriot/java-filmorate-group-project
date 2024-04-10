@@ -8,7 +8,6 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.simple.SimpleJdbcInsert;
 import org.springframework.jdbc.support.rowset.SqlRowSet;
 import org.springframework.stereotype.Component;
-import ru.yandex.practicum.filmorate.event.Events;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.model.Director;
 import ru.yandex.practicum.filmorate.model.Film;
@@ -27,10 +26,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDate;
 import java.util.*;
-
-import static ru.yandex.practicum.filmorate.model.event.EventOperation.ADD;
-import static ru.yandex.practicum.filmorate.model.event.EventOperation.REMOVE;
-import static ru.yandex.practicum.filmorate.model.event.EventType.LIKE;
 
 @Component
 @Slf4j
@@ -132,9 +127,8 @@ public class FilmDbStorage implements FilmStorage {
     public void addLike(Integer filmId, Integer userId) {
         checkFilmExist(filmId);
         userStorage.checkUserExist(userId);
-        String sql = "INSERT INTO USER_FILM (USER_ID, FILM_ID) VALUES(?, ?);";
+        String sql = "MERGE INTO USER_FILM (USER_ID, FILM_ID) VALUES(?, ?);";
         jdbcTemplate.update(sql, userId, filmId);
-        Events.addEvent(jdbcTemplate, LIKE, ADD, userId, filmId);
         log.info("Like added to film with id={}.", filmId);
     }
 
@@ -144,7 +138,6 @@ public class FilmDbStorage implements FilmStorage {
         userStorage.checkUserExist(userId);
         String sql = "DELETE FROM USER_FILM WHERE FILM_ID=? AND USER_ID=?;";
         jdbcTemplate.update(sql, filmId, userId);
-        Events.addEvent(jdbcTemplate, LIKE, REMOVE, filmId, userId);
         log.info("Like removed from film with id={}.", filmId);
     }
 
@@ -225,11 +218,11 @@ public class FilmDbStorage implements FilmStorage {
         String sql = "SELECT *, COUNT(UF.FILM_ID) AS LIKES " +
                 "FROM FILMS F " +
                 "LEFT OUTER JOIN RATING AS R ON R.RATING_ID = F.RATING " +
+                "LEFT JOIN USER_FILM AS UF ON UF.FILM_ID = F.FILM_ID " +
                 "LEFT OUTER JOIN FILM_DIRECTOR AS FD ON FD.FILM_ID = F.FILM_ID " +
                 "LEFT OUTER JOIN DIRECTOR AS D ON D.DIRECTOR_ID = FD.DIRECTOR_ID " +
-                "LEFT JOIN USER_FILM AS UF ON UF.FILM_ID = F.FILM_ID " +
                 "WHERE LOWER(D.NAME) like ? " +
-                "GROUP BY F.FILM_ID " +
+                "GROUP BY F.FILM_ID, UF.USER_ID " +
                 "ORDER BY LIKES DESC";
         return jdbcTemplate.query(sql, (rs, rowNum) -> makeFilm(rs), lowerQuery);
     }
@@ -242,7 +235,7 @@ public class FilmDbStorage implements FilmStorage {
                 "LEFT OUTER JOIN RATING AS R ON R.RATING_ID = F.RATING " +
                 "LEFT JOIN USER_FILM AS UF ON UF.FILM_ID = F.FILM_ID " +
                 "WHERE LOWER(TITLE) LIKE ? " +
-                "GROUP BY F.FILM_ID " +
+                "GROUP BY F.FILM_ID, UF.USER_ID " +
                 "ORDER BY LIKES DESC";
         return jdbcTemplate.query(sql, (rs, rowNum) -> makeFilm(rs), lowerQuery);
     }
@@ -253,12 +246,12 @@ public class FilmDbStorage implements FilmStorage {
         String sql = "SELECT *, COUNT(UF.FILM_ID) AS LIKES " +
                 "FROM FILMS F " +
                 "LEFT OUTER JOIN RATING AS R ON R.RATING_ID = F.RATING " +
+                "LEFT JOIN USER_FILM AS UF ON UF.FILM_ID = F.FILM_ID " +
                 "LEFT OUTER JOIN FILM_DIRECTOR AS FD ON FD.FILM_ID = F.FILM_ID " +
                 "LEFT OUTER JOIN DIRECTOR AS D ON D.DIRECTOR_ID = FD.DIRECTOR_ID " +
-                "LEFT JOIN USER_FILM AS UF ON UF.FILM_ID = F.FILM_ID " +
-                "WHERE LOWER(TITLE) like ? OR LOWER(D.NAME) like ?" +
-                "GROUP BY F.FILM_ID " +
-                "ORDER BY LIKES DESC";
+                "WHERE LOWER(F.TITLE) like ? OR LOWER(D.NAME) like ?" +
+                "GROUP BY F.FILM_ID, UF.USER_ID " +
+                "ORDER BY UF.FILM_ID DESC";
         return jdbcTemplate.query(sql, (rs, rowNum) -> makeFilm(rs), lowerQuery, lowerQuery);
     }
 

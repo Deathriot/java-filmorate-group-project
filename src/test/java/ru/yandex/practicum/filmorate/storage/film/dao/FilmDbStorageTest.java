@@ -386,7 +386,7 @@ class FilmDbStorageTest {
     void searchFilmsAnywayByDirectorReturnFilms() {
         // given
         Film film = createDefaultFilm();
-        Director addedDirector = directorDbStorage.createDirector(new Director(1, "Director"));
+        Director addedDirector = directorDbStorage.createDirector(Director.builder().id(1).name("Director").build());
         film.setDirectors(List.of(addedDirector));
         Film addedFilm = filmDbStorage.addFilm(film);
 
@@ -449,7 +449,7 @@ class FilmDbStorageTest {
     void searchFilmsByDirectorReturnFilms() {
         // given
         Film film = createDefaultFilm();
-        Director addedDirector = directorDbStorage.createDirector(new Director(1, "Director"));
+        Director addedDirector = directorDbStorage.createDirector(Director.builder().id(1).name("Director").build());
         film.setDirectors(List.of(addedDirector));
         Film addedFilm = filmDbStorage.addFilm(film);
 
@@ -467,7 +467,7 @@ class FilmDbStorageTest {
     void searchFilmsByDirectorReturnEmpty() {
         // given
         Film film = createDefaultFilm();
-        Director addedDirector = directorDbStorage.createDirector(new Director(1, "Director"));
+        Director addedDirector = directorDbStorage.createDirector(Director.builder().id(1).name("Dir").build());
         film.setDirectors(List.of(addedDirector));
         filmDbStorage.addFilm(film);
 
