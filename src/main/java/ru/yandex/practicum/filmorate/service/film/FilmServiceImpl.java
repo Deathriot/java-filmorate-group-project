@@ -45,11 +45,13 @@ public class FilmServiceImpl implements FilmService {
     public Collection<Film> getPopular(Integer count, Integer genreId, String year) {
         if (year == null) {
             return filmStorage.getPopularByGenre(count, genreId);
-        } else if (genreId == null) {
-            return filmStorage.getPopularByYear(count, year);
-        } else {
-            return filmStorage.getPopularByGenreAndYear(count, genreId, year);
         }
+
+        if (genreId == null) {
+            return filmStorage.getPopularByYear(count, year);
+        }
+
+        return filmStorage.getPopularByGenreAndYear(count, genreId, year);
     }
 
     @Override
@@ -103,11 +105,12 @@ public class FilmServiceImpl implements FilmService {
         directorStorage.getDirectorById(id);
         if (sortBy.equals("year")) {
             return filmStorage.getByDirectorSortByYear(id);
-        } else if (sortBy.equals("likes")) {
-            return filmStorage.getByDirectorSortByLikes(id);
-        } else {
-            throw new IllegalArgumentException("Wrong sort format");
         }
+        if (sortBy.equals("likes")) {
+            return filmStorage.getByDirectorSortByLikes(id);
+        }
+
+        throw new IllegalArgumentException("Wrong sort format");
     }
 
     @Override

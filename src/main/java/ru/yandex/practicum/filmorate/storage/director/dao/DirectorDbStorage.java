@@ -39,7 +39,6 @@ public class DirectorDbStorage implements DirectorStorage {
         return directorParsing(directorRows);
     }
 
-
     @Override
     public Director getDirectorById(Integer id) {
         SqlRowSet directorRowsSet = jdbcTemplate.queryForRowSet("SELECT * FROM DIRECTOR WHERE DIRECTOR_ID = ?", id);
