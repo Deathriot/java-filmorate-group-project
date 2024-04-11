@@ -1,4 +1,4 @@
-package ru.yandex.practicum.filmorate.controller;
+package ru.yandex.practicum.filmorate.storage.user.dao;
 
 import lombok.RequiredArgsConstructor;
 import org.junit.jupiter.api.Test;
@@ -9,10 +9,7 @@ import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.storage.user.UserStorage;
 
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -108,10 +105,47 @@ public class UserDbStorageTest {
         assertTrue(list2.contains(user3.getId()));
     }
 
+    @Test
+    public void deleteUserTest() {
+        User user1 = userDbStorage.addUser(createDefaultUser());
+        User user2 = userDbStorage.addUser(createDefaultUser());
+
+        userDbStorage.addFriend(user1.getId(), user2.getId());
+
+        userDbStorage.addFriend(user2.getId(), user1.getId());
+
+        List<User> friends1 = new ArrayList<>(userDbStorage.getFriends((user1.getId())));
+        Set<Integer> list1 = friends1.stream().map(User::getId).collect(Collectors.toCollection(HashSet::new));
+
+        assertEquals(1, list1.size());
+        userDbStorage.deleteUser(user2.getId());
+
+        friends1 = new ArrayList<>(userDbStorage.getFriends((user1.getId())));
+        list1 = friends1.stream().map(User::getId).collect(Collectors.toCollection(HashSet::new));
+
+        List<User> users = new ArrayList<>(userDbStorage.getAllUsers());
+        Set<Integer> list2 = users.stream().map(User::getId).collect(Collectors.toCollection(HashSet::new));
+
+        assertFalse(list2.contains(user2.getId()));
+        assertEquals(0, list1.size());
+        assertFalse(list1.contains(user2.getId()));
+    }
+
     private User createDefaultUser() {
+        int leftLimit = 97; // letter 'a'
+        int rightLimit = 122; // letter 'z'
+        int targetStringLength = 10;
+        Random random = new Random();
+        StringBuilder buffer = new StringBuilder(targetStringLength);
+        for (int i = 0; i < targetStringLength; i++) {
+            int randomLimitedInt = leftLimit + (int)
+                    (random.nextFloat() * (rightLimit - leftLimit + 1));
+            buffer.append((char) randomLimitedInt);
+        }
+        String generatedString = buffer.toString();
         return User.builder()
-                .email("user@mail.ru")
-                .login("User")
+                .email(String.format("%s@mail.ru", generatedString))
+                .login(String.format("%s@mail.ru", generatedString))
                 .name("User")
                 .birthday(LocalDate.of(2005, 8, 15))
                 .build();

@@ -10,11 +10,10 @@ import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Positive;
 import javax.validation.constraints.Size;
 import java.time.LocalDate;
-import java.util.ArrayList;
 import java.util.List;
 
 @Data
-@Builder
+@Builder(toBuilder = true)
 public class Film {
 
     private Integer id;
@@ -33,9 +32,9 @@ public class Film {
     @Positive(message = "The length of the film must be positive")
     private Integer duration;
 
-    @NotNull
     private Mpa mpa;
 
-    private List<Genre> genres = new ArrayList<>();
+    private List<Genre> genres;
 
+    private List<Director> directors;
 }
