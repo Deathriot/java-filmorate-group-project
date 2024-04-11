@@ -35,7 +35,8 @@ public class ReviewDbStorage implements ReviewStorage {
                 .usingGeneratedKeyColumns("REVIEW_ID");
 
         Integer reviewId = simpleJdbcInsert.executeAndReturnKey(toMap(review)).intValue();
-        return getReviewById(reviewId);
+        review.setReviewId(reviewId);
+        return review;
     }
 
     @Override
@@ -51,6 +52,7 @@ public class ReviewDbStorage implements ReviewStorage {
                 review.getIsPositive(),
                 review.getReviewId());
 
+        // Выгружать из БД нужно (написал в комментарии в ПР)
         return getReviewById(review.getReviewId());
     }
 
@@ -64,7 +66,7 @@ public class ReviewDbStorage implements ReviewStorage {
 
     @Override
     public Collection<Review> getAllReviews(Integer count) {
-        String sql = "SELECT * FROM REVIEWS ORDER BY USEFUL DESC LIMIT ?;";
+        String sql = "SELECT * FROM REVIEWS ORDER BY USEFUL DESC FETCH FIRST ? ROWS ONLY;";
 
         return jdbcTemplate.query(sql, (rs, num) -> makeReview(rs), count);
     }
@@ -72,7 +74,7 @@ public class ReviewDbStorage implements ReviewStorage {
     @Override
     public Collection<Review> getAllReviewsOfFilm(Integer filmId, Integer count) {
         filmStorage.checkFilmExist(filmId);
-        String sql = "SELECT * FROM REVIEWS WHERE FILM_ID=? ORDER BY USEFUL DESC LIMIT ?;";
+        String sql = "SELECT * FROM REVIEWS WHERE FILM_ID=? ORDER BY USEFUL DESC FETCH FIRST ? ROWS ONLY;";
 
         return jdbcTemplate.query(sql, (rs, num) -> makeReview(rs), filmId, count);
     }
@@ -88,11 +90,13 @@ public class ReviewDbStorage implements ReviewStorage {
         String sql = "SELECT IS_POSITIVE FROM USER_REVIEW_RATE WHERE REVIEW_ID=? AND USER_ID=?";
         SqlRowSet userRate = jdbcTemplate.queryForRowSet(sql, reviewId, userId);
 
-        if (!userRate.next())
+        if (!userRate.next()) {
             throw new IncorrectParameterException("User id=" + userId + " do not rate this review id=" + reviewId);
+        }
 
-        if (isPositive != userRate.getBoolean("IS_POSITIVE"))
+        if (isPositive != userRate.getBoolean("IS_POSITIVE")) {
             throw new IncorrectParameterException("User id=" + userId + " do not rate this review id=" + reviewId);
+        }
 
         String sqlDelete = "DELETE FROM USER_REVIEW_RATE WHERE USER_ID=? AND REVIEW_ID=?;";
         jdbcTemplate.update(sqlDelete, userId, reviewId);
@@ -104,8 +108,9 @@ public class ReviewDbStorage implements ReviewStorage {
         SqlRowSet userRate = jdbcTemplate.queryForRowSet(sql, reviewId, userId);
 
 
-        if (userRate.next())
+        if (userRate.next()) {
             throw new IncorrectParameterException("User id=" + userId + " already rate this review id=" + reviewId);
+        }
 
         String sqlUpdateUserLikes = "INSERT INTO USER_REVIEW_RATE (USER_ID, REVIEW_ID, IS_POSITIVE) VALUES(?, ?, ?);";
         jdbcTemplate.update(sqlUpdateUserLikes, userId, reviewId, isPositive);

@@ -8,7 +8,7 @@ import javax.validation.constraints.NotNull;
 
 @Data
 @Builder
-public class Review {
+public final class Review {
     private Integer reviewId;
 
     @NotBlank

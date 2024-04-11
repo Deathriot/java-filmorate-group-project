@@ -5,7 +5,7 @@ import lombok.Data;
 
 @Data
 @Builder
-public class Event {
+public final class Event {
     private Integer eventId;
     private EventType eventType;
     private EventOperation operation;

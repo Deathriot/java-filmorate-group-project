@@ -8,7 +8,7 @@ import javax.validation.constraints.NotNull;
 
 @Data
 @Builder
-public class Director {
+public final class Director {
 
     @NotNull
     private Integer id;

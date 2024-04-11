@@ -149,7 +149,7 @@ public class FilmDbStorage implements FilmStorage {
                 "LEFT JOIN USER_FILM AS UF ON F.FILM_ID = UF.FILM_ID " +
                 "GROUP BY F.FILM_ID " +
                 "ORDER BY LIKES DESC " +
-                "LIMIT ?;";
+                "FETCH FIRST ? ROWS ONLY;";
         Collection<Film> films = jdbcTemplate.query(sql, (rs, rowNum) -> makeFilm(rs), count);
         log.info("Get top films: {}.", films.size());
         return films;
@@ -169,7 +169,7 @@ public class FilmDbStorage implements FilmStorage {
                 "WHERE G.GENRE_ID = ?\n" +
                 "GROUP BY F.FILM_ID\n" +
                 "ORDER BY LIKES DESC\n" +
-                "LIMIT ?";
+                "FETCH FIRST ? ROWS ONLY";
         Collection<Film> films = jdbcTemplate.query(sql, (rs, rowNum) -> makeFilm(rs), genreId, count);
         log.info("Get top films by GENRE: {}.", films.size());
         return films;
@@ -186,7 +186,7 @@ public class FilmDbStorage implements FilmStorage {
                 "WHERE EXTRACT(YEAR FROM CAST(F.RELEASE_DATE AS date)) = ?\n" +
                 "GROUP BY F.FILM_ID\n" +
                 "ORDER BY LIKES DESC\n" +
-                "LIMIT ?";
+                "FETCH FIRST ? ROWS ONLY";
         Collection<Film> films = jdbcTemplate.query(sql, (rs, rowNum) -> makeFilm(rs), year, count);
         log.info("Get top films by YEAR: {}.", films.size());
         return films;
@@ -206,7 +206,7 @@ public class FilmDbStorage implements FilmStorage {
                 "WHERE G.GENRE_ID = ? AND EXTRACT(YEAR FROM CAST(F.RELEASE_DATE AS date)) = ?\n" +
                 "GROUP BY F.FILM_ID\n" +
                 "ORDER BY LIKES DESC\n" +
-                "LIMIT ?";
+                "FETCH FIRST ? ROWS ONLY";
         Collection<Film> films = jdbcTemplate.query(sql, (rs, rowNum) -> makeFilm(rs), genreId, year, count);
         log.info("Get top films by GENRE and YEAR: {}.", films.size());
         return films;
