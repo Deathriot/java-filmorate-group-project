@@ -25,9 +25,9 @@ public class ReviewServiceImpl implements ReviewService {
 
     @Override
     public Review updateReview(Review review) {
-        Review review1 = storage.updateReview(review);
-        eventStorage.addEvent(EventType.REVIEW, EventOperation.UPDATE, review1.getUserId(), review1.getReviewId());
-        return review1;
+        Review updatedReview = storage.updateReview(review);
+        eventStorage.addEvent(EventType.REVIEW, EventOperation.UPDATE, updatedReview.getUserId(), updatedReview.getReviewId());
+        return updatedReview;
     }
 
     @Override
