@@ -30,4 +30,8 @@ public interface FilmService {
     Collection<Film> findCommonFilms(Integer userId, Integer friendId);
 
     Collection<Film> getFilmsBy(String query, String by);
+
+    void addScore(Integer filmId, Integer userId, Integer score);
+
+    void deleteScore(Integer filmId, Integer userId);
 }

@@ -44,4 +44,10 @@ public interface FilmStorage {
     Collection<Film> findFilmsByTitle(String query);
 
     Collection<Film> findFilmsByDirectorAndTitle(String query);
+
+    void addScore(Integer filmId, Integer userId, Integer score, boolean isPositiveScore);
+
+    void deleteScore(Integer filmId, Integer userId);
+
+    Collection<Film> getUserRecommendationsByScore(Integer userId);
 }

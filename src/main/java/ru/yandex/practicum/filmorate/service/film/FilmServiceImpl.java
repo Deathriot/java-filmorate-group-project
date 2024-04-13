@@ -132,4 +132,21 @@ public class FilmServiceImpl implements FilmService {
                 throw new IncorrectParameterException("Incorrect params. query:" + query + " by:" + by);
         }
     }
+
+    @Override
+    public void addScore(Integer filmId, Integer userId, Integer score) {
+        boolean isPositiveScore = false;
+        if (score < 1 || score > 10) {
+            throw new IncorrectParameterException("Incorrect score. Must be from 1 to 10. Input: " + score);
+        }
+        if (score > 5) {
+            isPositiveScore = true;
+        }
+        filmStorage.addScore(filmId, userId, score, isPositiveScore);
+    }
+
+    @Override
+    public void deleteScore(Integer filmId, Integer userId) {
+        filmStorage.deleteScore(filmId, userId);
+    }
 }

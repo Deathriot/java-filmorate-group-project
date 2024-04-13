@@ -75,5 +75,15 @@ public class FilmController {
     public Collection<Film> findFilmsBy(@RequestParam String query, @RequestParam String by) {
         return filmService.getFilmsBy(query, by);
     }
+
+    @PutMapping("/{filmId}/score/{userId}/{score}")
+    public void addScore(@PathVariable Integer filmId, @PathVariable Integer userId, @PathVariable Integer score) {
+        filmService.addScore(filmId, userId, score);
+    }
+
+    @DeleteMapping("{filmId}/score/{userId}")
+    public void deleteScore(@PathVariable Integer filmId, @PathVariable Integer userId) {
+        filmService.deleteScore(filmId, userId);
+    }
 }
 

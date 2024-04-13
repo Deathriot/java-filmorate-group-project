@@ -256,6 +256,25 @@ public class FilmDbStorage implements FilmStorage {
     }
 
     @Override
+    public void addScore(Integer filmId, Integer userId, Integer score, boolean isPositiveScore) {
+        checkFilmExist(filmId);
+        userStorage.checkUserExist(userId);
+        String sqlUserScore = "MERGE INTO USER_FILM (USER_ID, FILM_ID, SCORE, IS_POSITIVE) VALUES(?, ?, ?, ?);";
+        jdbcTemplate.update(sqlUserScore, userId, filmId, score, isPositiveScore);
+        updateFilmScore(filmId);
+        log.info("Like added to film with id={}.", filmId);
+    }
+
+    @Override
+    public void deleteScore(Integer filmId, Integer userId) {
+        checkFilmExist(filmId);
+        userStorage.checkUserExist(userId);
+        String sql = "DELETE FROM USER_FILM WHERE FILM_ID = ? AND USER_ID = ?";
+        jdbcTemplate.update(sql, filmId, userId);
+        updateFilmScore(filmId);
+    }
+
+    @Override
     public void checkFilmExist(Integer id) {
         String sqlQuery = "SELECT COUNT(*) FROM FILMS WHERE FILM_ID=? ";
         Optional.ofNullable(jdbcTemplate.queryForObject(sqlQuery, Integer.class, id))
@@ -297,6 +316,42 @@ public class FilmDbStorage implements FilmStorage {
     }
 
     @Override
+    public Collection<Film> getUserRecommendationsByScore(Integer userId) {
+        // 1) Найти пользователей с похожими оценками одним и тем же фильмам.
+        //    Т.е. кто поставил такому же фильму высокую оценку.
+        String query1 = "SELECT uf2.user_id " +
+                "FROM user_film uf1 " +
+                "JOIN user_film uf2 ON uf1.film_id = uf2.film_id AND uf1.user_id <> uf2.user_id " +
+                "WHERE uf1.user_id = ? " +
+                "GROUP BY uf1.user_id, uf2.user_id " +
+                "ORDER BY COUNT(*) DESC";
+
+        // 2) Найдем все фильмы, которые лайкнул пользователь
+        String query2 = "SELECT film_id FROM user_film WHERE user_id = ?";
+
+        // 3) Рекомендовать фильмы, с положительной оценкой.
+        String generalQuery = "SELECT f.film_id, " +
+                "f.title, " +
+                "f.description, " +
+                "f.release_date, " +
+                "f.duration, " +
+                "r.rating_id, " +
+                "f.score, " +
+                "r.rating_name " +
+                "FROM user_film uf " +
+                "JOIN films f ON f.film_id = uf.film_id " +
+                "JOIN rating r ON f.rating = r.rating_id " +
+                "WHERE uf.user_id IN (" + query1 + ") " +
+                "AND uf.film_id NOT IN (" + query2 + ") " +
+                "AND uf.SCORE > 5 " +
+                "AND f.SCORE BETWEEN 6 AND 10 " +
+                "GROUP BY f.film_id " +
+                "ORDER BY COUNT(f.film_id) DESC";
+
+        return jdbcTemplate.query(generalQuery, (rs, rowNum) -> makeFilm(rs), userId, userId);
+    }
+
+    @Override
     public Collection<Film> findCommonFilms(Integer userId, Integer friendId) {
         String query = "SELECT f.*, " +
                 "r.rating_id, " +
@@ -330,6 +385,7 @@ public class FilmDbStorage implements FilmStorage {
                 .mpa(mpaStorage.makeMpa(rs))
                 .genres(genres)
                 .directors(directors)
+                .score(rs.getDouble("SCORE"))
                 .build();
     }
 
@@ -384,6 +440,7 @@ public class FilmDbStorage implements FilmStorage {
         values.put("RELEASE_DATE", film.getReleaseDate());
         values.put("DURATION", film.getDuration());
         values.put("RATING", film.getMpa().getId());
+        values.put("SCORE", film.getScore());
         return values;
     }
 
@@ -409,7 +466,17 @@ public class FilmDbStorage implements FilmStorage {
                 "LEFT JOIN FILM_DIRECTOR fd ON f.FILM_ID = fd.FILM_ID " +
                 "WHERE fd.DIRECTOR_ID = ? " +
                 "GROUP BY F.FILM_ID " +
-                "ORDER BY release_year ASC";
+                "ORDER BY release_year";
         return jdbcTemplate.query(sqlYear, (rs, rowNum) -> makeFilm(rs), id);
+    }
+
+    private void updateFilmScore(Integer filmId) {
+        checkFilmExist(filmId);
+        String sqlScore = "SELECT AVG(SCORE)\n" +
+                "FROM USER_FILM\n" +
+                "WHERE FILM_ID = ?";
+        Double score = jdbcTemplate.queryForObject(sqlScore, Double.class, filmId);
+        String sql = "UPDATE FILMS SET SCORE = ? WHERE FILM_ID = ?";
+        jdbcTemplate.update(sql, score, filmId);
     }
 }

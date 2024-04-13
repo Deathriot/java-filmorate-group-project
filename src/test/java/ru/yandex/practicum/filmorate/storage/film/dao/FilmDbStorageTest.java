@@ -481,6 +481,45 @@ class FilmDbStorageTest {
                 .isEqualTo(Collections.EMPTY_LIST);
     }
 
+    @Test
+    void addScoreReturnScore() {
+        // given
+        Film film = createDefaultFilm();
+        Film addedFilm = filmDbStorage.addFilm(film);
+        int addedFilmId = addedFilm.getId();
+        User user = createUser();
+        User addedUser = userDbStorage.addUser(user);
+
+        // when
+        filmDbStorage.addScore(addedFilmId, addedUser.getId(), 7, true);
+
+        // then
+        double filmScore = filmDbStorage.getFilmById(addedFilmId).getScore();
+        double result = 7.0;
+        assertEquals(result, filmScore, "Рейтинги фильма не равны.");
+    }
+
+    @Test
+    void deleteScoreReturnScore() {
+        // given
+        Film film = createDefaultFilm();
+        Film addedFilm = filmDbStorage.addFilm(film);
+        int addedFilmId = addedFilm.getId();
+        User user = createUser();
+        User addedUser = userDbStorage.addUser(user);
+        filmDbStorage.addScore(addedFilmId, addedUser.getId(), 7, true);
+
+        // when
+        filmDbStorage.deleteScore(addedFilmId, addedUser.getId());
+
+        // then
+        double filmScore = filmDbStorage.getFilmById(addedFilmId).getScore();
+        double result = 0;
+        assertEquals(result, filmScore, "Рейтинги фильма не равны.");
+    }
+
+
+
     private Film createDefaultFilm() {
         return Film.builder()
                 .name("testFilm")
