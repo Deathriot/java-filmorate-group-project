@@ -518,7 +518,84 @@ class FilmDbStorageTest {
         assertEquals(result, filmScore, "Рейтинги фильма не равны.");
     }
 
+    @Test
+    void getRecommendationsByScore() {
+        // given
+        Film film_1 = createDefaultFilm();
+        Film film_2 = film_1.toBuilder()
+                .name("testFilm 2")
+                .description("testFilm 2")
+                .releaseDate(LocalDate.of(2001, 2, 2))
+                .duration(122)
+                .mpa(Mpa.builder()
+                        .id(2)
+                        .build())
+                .build();
+        Film film_3 = film_1.toBuilder()
+                .name("testFilm 3")
+                .description("testFilm 3")
+                .releaseDate(LocalDate.of(2002, 3, 3))
+                .duration(123)
+                .mpa(Mpa.builder()
+                        .id(3)
+                        .build())
+                .build();
+        User user_1 = User.builder()
+                .email("user_1@mail.ru")
+                .login("user_1@mail.ru")
+                .name("User 1")
+                .birthday(LocalDate.of(2005, 8, 15))
+                .build();
+        User user_2 = user_1.toBuilder()
+                .email("user_2@mail.ru")
+                .login("user_2@mail.ru")
+                .name("User 2")
+                .birthday(LocalDate.of(2006, 9, 16))
+                .build();
+        User user_3 = user_1.toBuilder()
+                .email("user_3@mail.ru")
+                .login("user_3@mail.ru")
+                .name("User 3")
+                .birthday(LocalDate.of(2007, 9, 17))
+                .build();
 
+        film_1 = filmDbStorage.addFilm(film_1);
+        film_2 = filmDbStorage.addFilm(film_2);
+        film_3 = filmDbStorage.addFilm(film_3);
+        user_1 = userDbStorage.addUser(user_1);
+        user_2 = userDbStorage.addUser(user_2);
+        user_3 = userDbStorage.addUser(user_3);
+
+        // when
+        filmDbStorage.addScore(film_1.getId(), user_1.getId(), 7, true);
+        filmDbStorage.addScore(film_2.getId(), user_1.getId(), 6, true);
+
+        filmDbStorage.addScore(film_1.getId(), user_2.getId(), 5, false);
+        filmDbStorage.addScore(film_2.getId(), user_2.getId(), 8, true);
+        filmDbStorage.addScore(film_3.getId(), user_2.getId(), 6, true);
+
+        filmDbStorage.addScore(film_3.getId(), user_3.getId(), 10, true);
+
+        film_2 = filmDbStorage.getFilmById(film_2.getId());
+        film_3 = filmDbStorage.getFilmById(film_3.getId());
+
+        // film 1 - avg score = (7 + 5) / 2 = 6
+        // film 2 - avg score = (6 + 8) / 2 = 7
+        // film 3 - avg score = (6 + 6 + 10) / 3 = 7.33
+
+        Collection<Film> recommendedFilmsForUser3 = filmDbStorage.getUserRecommendationsByScore(user_3.getId());
+
+        // then
+        assertFalse(recommendedFilmsForUser3.isEmpty());
+        assertTrue(recommendedFilmsForUser3.contains(film_2));
+        assertEquals(1, recommendedFilmsForUser3.size());
+
+        Collection<Film> recommendedFilmsForUser1 = filmDbStorage.getUserRecommendationsByScore(user_1.getId());
+
+        assertFalse(recommendedFilmsForUser1.isEmpty());
+        assertTrue(recommendedFilmsForUser1.contains(film_3));
+        assertEquals(1, recommendedFilmsForUser1.size());
+    }
 
     private Film createDefaultFilm() {
         return Film.builder()
