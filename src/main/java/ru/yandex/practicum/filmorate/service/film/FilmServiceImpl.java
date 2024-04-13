@@ -72,15 +72,22 @@ public class FilmServiceImpl implements FilmService {
     }
 
     @Override
-    public void addLike(Integer id, Integer userId) {
-        filmStorage.addLike(id, userId);
-        eventStorage.addEvent(EventType.LIKE, EventOperation.ADD, userId, id);
+    public void addScore(Integer filmId, Integer userId, Integer score) {
+        boolean isPositiveScore = false;
+        if (score < 1 || score > 10) {
+            throw new IncorrectParameterException("Incorrect score. Must be from 1 to 10. Input: " + score);
+        }
+        if (score > 5) {
+            isPositiveScore = true;
+        }
+        filmStorage.addScore(filmId, userId, score, isPositiveScore);
+        eventStorage.addEvent(EventType.SCORE, EventOperation.ADD, userId, filmId);
     }
 
     @Override
-    public void deleteLike(Integer id, Integer userId) {
-        filmStorage.deleteLike(id, userId);
-        eventStorage.addEvent(EventType.LIKE, EventOperation.REMOVE, userId, id);
+    public void deleteScore(Integer id, Integer userId) {
+        filmStorage.deleteScore(id, userId);
+        eventStorage.addEvent(EventType.SCORE, EventOperation.REMOVE, userId, id);
     }
 
     private void setDirectors(Film film) {
@@ -131,22 +138,5 @@ public class FilmServiceImpl implements FilmService {
             default:
                 throw new IncorrectParameterException("Incorrect params. query:" + query + " by:" + by);
         }
-    }
-
-    @Override
-    public void addScore(Integer filmId, Integer userId, Integer score) {
-        boolean isPositiveScore = false;
-        if (score < 1 || score > 10) {
-            throw new IncorrectParameterException("Incorrect score. Must be from 1 to 10. Input: " + score);
-        }
-        if (score > 5) {
-            isPositiveScore = true;
-        }
-        filmStorage.addScore(filmId, userId, score, isPositiveScore);
-    }
-
-    @Override
-    public void deleteScore(Integer filmId, Integer userId) {
-        filmStorage.deleteScore(filmId, userId);
     }
 }

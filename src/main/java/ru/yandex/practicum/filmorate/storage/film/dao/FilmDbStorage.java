@@ -124,31 +124,13 @@ public class FilmDbStorage implements FilmStorage {
     }
 
     @Override
-    public void addLike(Integer filmId, Integer userId) {
-        checkFilmExist(filmId);
-        userStorage.checkUserExist(userId);
-        String sql = "MERGE INTO USER_FILM (USER_ID, FILM_ID) VALUES(?, ?);";
-        jdbcTemplate.update(sql, userId, filmId);
-        log.info("Like added to film with id={}.", filmId);
-    }
-
-    @Override
-    public void deleteLike(Integer filmId, Integer userId) {
-        checkFilmExist(filmId);
-        userStorage.checkUserExist(userId);
-        String sql = "DELETE FROM USER_FILM WHERE FILM_ID=? AND USER_ID=?;";
-        jdbcTemplate.update(sql, filmId, userId);
-        log.info("Like removed from film with id={}.", filmId);
-    }
-
-    @Override
     public Collection<Film> getPopular(Integer count) {
-        String sql = "SELECT F.*, R.*, COUNT(UF.FILM_ID) AS LIKES " +
+        String sql = "SELECT F.*, R.* " +
                 "FROM FILMS AS F " +
                 "LEFT JOIN RATING AS R ON R.RATING_ID = F.RATING " +
                 "LEFT JOIN USER_FILM AS UF ON F.FILM_ID = UF.FILM_ID " +
-                "GROUP BY F.FILM_ID " +
-                "ORDER BY LIKES DESC " +
+                "GROUP BY F.SCORE " +
+                "ORDER BY F.SCORE DESC " +
                 "FETCH FIRST ? ROWS ONLY;";
         Collection<Film> films = jdbcTemplate.query(sql, (rs, rowNum) -> makeFilm(rs), count);
         log.info("Get top films: {}.", films.size());
@@ -157,18 +139,17 @@ public class FilmDbStorage implements FilmStorage {
 
     @Override
     public Collection<Film> getPopularByGenre(Integer count, Integer genreId) {
-        String sql = "SELECT F.*,\n" +
-                "R.*,\n" +
-                "FG.*,\n" +
-                "COUNT(UF.FILM_ID) AS LIKES\n" +
-                "FROM FILMS AS F\n" +
-                "LEFT JOIN RATING AS R ON R.RATING_ID = F.RATING\n" +
-                "LEFT JOIN USER_FILM AS UF ON F.FILM_ID = UF.FILM_ID\n" +
-                "LEFT JOIN FILM_GENRE AS FG ON F.FILM_ID = FG.FILM_ID \n" +
-                "LEFT JOIN GENRE AS G ON FG.GENRE_ID = G.GENRE_ID\n" +
-                "WHERE G.GENRE_ID = ?\n" +
-                "GROUP BY F.FILM_ID\n" +
-                "ORDER BY LIKES DESC\n" +
+        String sql = "SELECT F.*, " +
+                "R.*, " +
+                "FG.* " +
+                "FROM FILMS AS F " +
+                "LEFT JOIN RATING AS R ON R.RATING_ID = F.RATING " +
+                "LEFT JOIN USER_FILM AS UF ON F.FILM_ID = UF.FILM_ID " +
+                "LEFT JOIN FILM_GENRE AS FG ON F.FILM_ID = FG.FILM_ID " +
+                "LEFT JOIN GENRE AS G ON FG.GENRE_ID = G.GENRE_ID " +
+                "WHERE G.GENRE_ID = ? " +
+                "GROUP BY F.SCORE " +
+                "ORDER BY F.SCORE DESC " +
                 "FETCH FIRST ? ROWS ONLY";
         Collection<Film> films = jdbcTemplate.query(sql, (rs, rowNum) -> makeFilm(rs), genreId, count);
         log.info("Get top films by GENRE: {}.", films.size());
@@ -177,15 +158,14 @@ public class FilmDbStorage implements FilmStorage {
 
     @Override
     public Collection<Film> getPopularByYear(Integer count, String year) {
-        String sql = "SELECT F.*,\n" +
-                "R.*,\n" +
-                "COUNT(UF.FILM_ID) AS LIKES\n" +
-                "FROM FILMS AS F\n" +
-                "LEFT JOIN RATING AS R ON R.RATING_ID = F.RATING\n" +
-                "LEFT JOIN USER_FILM AS UF ON F.FILM_ID = UF.FILM_ID\n" +
-                "WHERE EXTRACT(YEAR FROM CAST(F.RELEASE_DATE AS date)) = ?\n" +
-                "GROUP BY F.FILM_ID\n" +
-                "ORDER BY LIKES DESC\n" +
+        String sql = "SELECT F.*, " +
+                "R.* " +
+                "FROM FILMS AS F " +
+                "LEFT JOIN RATING AS R ON R.RATING_ID = F.RATING " +
+                "LEFT JOIN USER_FILM AS UF ON F.FILM_ID = UF.FILM_ID " +
+                "WHERE EXTRACT(YEAR FROM CAST(F.RELEASE_DATE AS date)) = ? " +
+                "GROUP BY F.SCORE " +
+                "ORDER BY F.SCORE DESC " +
                 "FETCH FIRST ? ROWS ONLY";
         Collection<Film> films = jdbcTemplate.query(sql, (rs, rowNum) -> makeFilm(rs), year, count);
         log.info("Get top films by YEAR: {}.", films.size());
@@ -194,18 +174,17 @@ public class FilmDbStorage implements FilmStorage {
 
     @Override
     public Collection<Film> getPopularByGenreAndYear(Integer count, Integer genreId, String year) {
-        String sql = "SELECT F.*,\n" +
-                "R.*,\n" +
-                "FG.*,\n" +
-                "COUNT(UF.FILM_ID) AS LIKES\n" +
-                "FROM FILMS AS F\n" +
-                "LEFT JOIN RATING AS R ON R.RATING_ID = F.RATING\n" +
-                "LEFT JOIN USER_FILM AS UF ON F.FILM_ID = UF.FILM_ID\n" +
-                "LEFT JOIN FILM_GENRE AS FG ON F.FILM_ID = FG.FILM_ID \n" +
-                "LEFT JOIN GENRE AS G ON FG.GENRE_ID = G.GENRE_ID\n" +
-                "WHERE G.GENRE_ID = ? AND EXTRACT(YEAR FROM CAST(F.RELEASE_DATE AS date)) = ?\n" +
-                "GROUP BY F.FILM_ID\n" +
-                "ORDER BY LIKES DESC\n" +
+        String sql = "SELECT F.*, " +
+                "R.*, " +
+                "FG.*" +
+                "FROM FILMS AS F " +
+                "LEFT JOIN RATING AS R ON R.RATING_ID = F.RATING " +
+                "LEFT JOIN USER_FILM AS UF ON F.FILM_ID = UF.FILM_ID " +
+                "LEFT JOIN FILM_GENRE AS FG ON F.FILM_ID = FG.FILM_ID " +
+                "LEFT JOIN GENRE AS G ON FG.GENRE_ID = G.GENRE_ID " +
+                "WHERE G.GENRE_ID = ? AND EXTRACT(YEAR FROM CAST(F.RELEASE_DATE AS date)) = ? " +
+                "GROUP BY F.SCORE " +
+                "ORDER BY F.SCORE DESC " +
                 "FETCH FIRST ? ROWS ONLY";
         Collection<Film> films = jdbcTemplate.query(sql, (rs, rowNum) -> makeFilm(rs), genreId, year, count);
         log.info("Get top films by GENRE and YEAR: {}.", films.size());
@@ -215,43 +194,43 @@ public class FilmDbStorage implements FilmStorage {
     @Override
     public Collection<Film> findFilmsByDirector(String query) {
         String lowerQuery = "%" + query.toLowerCase() + "%";
-        String sql = "SELECT DISTINCT F.*, R.*, COUNT(UF.FILM_ID) AS LIKES, D.NAME " +
+        String sql = "SELECT DISTINCT F.*, R.*, D.NAME " +
                 "FROM FILMS F " +
                 "LEFT OUTER JOIN RATING AS R ON R.RATING_ID = F.RATING " +
                 "LEFT OUTER JOIN FILM_DIRECTOR AS FD ON FD.FILM_ID = F.FILM_ID " +
                 "LEFT OUTER JOIN DIRECTOR AS D ON D.DIRECTOR_ID = FD.DIRECTOR_ID " +
                 "LEFT JOIN USER_FILM AS UF ON UF.FILM_ID = F.FILM_ID " +
                 "WHERE LOWER(D.NAME) like ? " +
-                "GROUP BY F.FILM_ID, D.NAME " +
-                "ORDER BY LIKES DESC, D.NAME DESC";
+                "GROUP BY F.SCORE, D.NAME " +
+                "ORDER BY F.SCORE DESC, D.NAME DESC";
         return jdbcTemplate.query(sql, (rs, rowNum) -> makeFilm(rs), lowerQuery);
     }
 
     @Override
     public Collection<Film> findFilmsByTitle(String query) {
         String lowerQuery = "%" + query.toLowerCase() + "%";
-        String sql = "SELECT DISTINCT F.*, R.*, COUNT(UF.FILM_ID) AS LIKES " +
+        String sql = "SELECT DISTINCT F.*, R.* " +
                 "FROM FILMS F " +
                 "LEFT OUTER JOIN RATING AS R ON R.RATING_ID = F.RATING " +
                 "LEFT JOIN USER_FILM AS UF ON UF.FILM_ID = F.FILM_ID " +
                 "WHERE LOWER(TITLE) LIKE ? " +
-                "GROUP BY F.FILM_ID " +
-                "ORDER BY LIKES DESC";
+                "GROUP BY F.SCORE " +
+                "ORDER BY F.SCORE DESC";
         return jdbcTemplate.query(sql, (rs, rowNum) -> makeFilm(rs), lowerQuery);
     }
 
     @Override
     public Collection<Film> findFilmsByDirectorAndTitle(String query) {
         String lowerQuery = "%" + query.toLowerCase() + "%";
-        String sql = "SELECT DISTINCT F.*, R.*, COUNT(UF.FILM_ID) AS LIKES, D.NAME " +
+        String sql = "SELECT DISTINCT F.*, R.*, D.NAME " +
                 "FROM FILMS F " +
                 "LEFT OUTER JOIN RATING AS R ON R.RATING_ID = F.RATING " +
                 "LEFT OUTER JOIN FILM_DIRECTOR AS FD ON FD.FILM_ID = F.FILM_ID " +
                 "LEFT OUTER JOIN DIRECTOR AS D ON D.DIRECTOR_ID = FD.DIRECTOR_ID " +
                 "LEFT JOIN USER_FILM AS UF ON UF.FILM_ID = F.FILM_ID " +
                 "WHERE LOWER(TITLE) like ? OR LOWER(D.NAME) like ?" +
-                "GROUP BY F.FILM_ID, D.NAME " +
-                "ORDER BY LIKES DESC, D.NAME DESC";
+                "GROUP BY F.SCORE, D.NAME " +
+                "ORDER BY F.SCORE DESC, D.NAME DESC";
         return jdbcTemplate.query(sql, (rs, rowNum) -> makeFilm(rs), lowerQuery, lowerQuery);
     }
 
@@ -284,39 +263,6 @@ public class FilmDbStorage implements FilmStorage {
 
     @Override
     public Collection<Film> getUserRecommendations(Integer userId) {
-        // 1) Найти пользователей с максимальным количеством пересечения по лайкам.
-        String query1 = "SELECT uf2.user_id " +
-                "FROM user_film uf1 " +
-                "JOIN user_film uf2 ON uf1.film_id = uf2.film_id AND uf1.user_id <> uf2.user_id " +
-                "WHERE uf1.user_id = ? " +
-                "GROUP BY uf1.user_id, uf2.user_id " +
-                "ORDER BY COUNT(*) DESC";
-
-        // 2) Найдем все фильмы, который лайкнул пользователь
-        String query2 = "SELECT film_id FROM user_film WHERE user_id = ?";
-
-        // 3) Рекомендовать фильмы, которым поставил лайк пользователь с похожими вкусами, а тот, для кого
-        // составляется рекомендация, ещё не поставил.
-        String generalQuery = "SELECT f.film_id, " +
-                "f.title, " +
-                "f.description, " +
-                "f.release_date, " +
-                "f.duration, " +
-                "r.rating_id, " +
-                "r.rating_name " +
-                "FROM user_film uf " +
-                "JOIN films f ON f.film_id = uf.film_id " +
-                "JOIN rating r ON f.rating = r.rating_id " +
-                "WHERE uf.user_id IN (" + query1 + ") " +
-                "AND uf.film_id NOT IN (" + query2 + ") " +
-                "GROUP BY f.film_id " +
-                "ORDER BY COUNT(f.film_id) DESC";
-
-        return jdbcTemplate.query(generalQuery, (rs, rowNum) -> makeFilm(rs), userId, userId);
-    }
-
-    @Override
-    public Collection<Film> getUserRecommendationsByScore(Integer userId) {
         // 1) Найти пользователей с похожими оценками одним и тем же фильмам.
         //    Т.е. кто поставил такому же фильму высокую оценку.
         String query1 = "SELECT uf2.user_id " +

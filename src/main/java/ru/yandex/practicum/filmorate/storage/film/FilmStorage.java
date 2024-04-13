@@ -17,9 +17,9 @@ public interface FilmStorage {
 
     Collection<Film> getAllFilms();
 
-    void addLike(Integer id, Integer userId);
+    void addScore(Integer id, Integer userId, Integer score, boolean isPositiveScore);
 
-    void deleteLike(Integer id, Integer userId);
+    void deleteScore(Integer id, Integer userId);
 
     Collection<Film> getPopular(Integer count);
 
@@ -44,10 +44,4 @@ public interface FilmStorage {
     Collection<Film> findFilmsByTitle(String query);
 
     Collection<Film> findFilmsByDirectorAndTitle(String query);
-
-    void addScore(Integer filmId, Integer userId, Integer score, boolean isPositiveScore);
-
-    void deleteScore(Integer filmId, Integer userId);
-
-    Collection<Film> getUserRecommendationsByScore(Integer userId);
 }

@@ -59,62 +59,6 @@ class FilmDbStorageTest {
     }
 
     @Test
-    public void addLikeTest() {
-
-        User user = userDbStorage.addUser(User.builder()
-                .email("user@mail.ru")
-                .login("User").name("User")
-                .birthday(LocalDate.of(1980, 12, 12))
-                .build());
-
-
-        Film newFilm = filmDbStorage.addFilm(createDefaultFilm());
-
-        filmDbStorage.addLike(newFilm.getId(), user.getId());
-
-        List<Film> likes = new ArrayList<>(filmDbStorage.getPopular(10));
-
-        assertTrue(likes.contains(newFilm));
-
-    }
-
-    @Test
-    public void deleteLikeTest() {
-
-        User user = userDbStorage.addUser(User.builder()
-                .email("user2@mail.ru")
-                .login("User2")
-                .name("User2")
-                .birthday(LocalDate.of(1980, 12, 12))
-                .build());
-        User user2 = userDbStorage.addUser(User.builder()
-                .email("user3@mail.ru")
-                .login("User3")
-                .name("User3")
-                .birthday(LocalDate.of(1980, 12, 12))
-                .build());
-
-        Film newFilm1 = filmDbStorage.addFilm(createDefaultFilm());
-        Film newFilm2 = filmDbStorage.addFilm(createDefaultFilm());
-
-        filmDbStorage.addLike(newFilm1.getId(), user.getId());
-        filmDbStorage.addLike(newFilm2.getId(), user.getId());
-        filmDbStorage.addLike(newFilm2.getId(), user2.getId());
-
-        List<Film> likes = new ArrayList<>(filmDbStorage.getPopular(1));
-
-        assertTrue(likes.contains(newFilm2));
-
-        filmDbStorage.deleteLike(newFilm2.getId(), user.getId());
-        filmDbStorage.deleteLike(newFilm2.getId(), user2.getId());
-
-        likes = new ArrayList<>(filmDbStorage.getPopular(1));
-
-        assertFalse(likes.contains(newFilm2));
-        assertTrue(likes.contains(newFilm1));
-    }
-
-    @Test
     public void deleteFilmTest() {
 
         Film newFilm = filmDbStorage.addFilm(createDefaultFilm());
@@ -133,9 +77,13 @@ class FilmDbStorageTest {
     @Test
     public void getPopularByGenre() {
         // given
-        Film filmFromDb = filmDbStorage.addFilm(createFilmWithAllParameters());
+        Film filmFromDb1 = filmDbStorage.addFilm(createFilmWithAllParameters());
+        Film filmFromDb2 = filmDbStorage.addFilm(createFilmWithAllParameters());
         User userFromDb = userDbStorage.addUser(createUser());
-        filmDbStorage.addLike(filmFromDb.getId(), userFromDb.getId());
+        filmDbStorage.addScore(filmFromDb1.getId(), userFromDb.getId(), 2, false);
+        filmDbStorage.addScore(filmFromDb2.getId(), userFromDb.getId(), 8, true);
+        filmFromDb1.setScore(2.0);
+        filmFromDb2.setScore(8.0);
 
         // when
         Collection<Film> popularByGenre = filmDbStorage.getPopularByGenre(10, 1);
@@ -144,7 +92,7 @@ class FilmDbStorageTest {
         assertThat(popularByGenre)
                 .isNotNull()
                 .usingRecursiveComparison()
-                .isEqualTo(List.of(filmFromDb));
+                .isEqualTo(List.of(filmFromDb2, filmFromDb1));
     }
 
     @Test
@@ -152,7 +100,7 @@ class FilmDbStorageTest {
         // given
         Film filmFromDb = filmDbStorage.addFilm(createFilmWithAllParameters());
         User userFromDb = userDbStorage.addUser(createUser());
-        filmDbStorage.addLike(filmFromDb.getId(), userFromDb.getId());
+        filmDbStorage.addScore(filmFromDb.getId(), userFromDb.getId(), 2, false);
 
         // when
         Collection<Film> popularByGenre = filmDbStorage.getPopularByGenre(10, 2);
@@ -167,9 +115,13 @@ class FilmDbStorageTest {
     @Test
     public void getPopularByYear() {
         // given
-        Film filmFromDb = filmDbStorage.addFilm(createFilmWithAllParameters());
+        Film filmFromDb1 = filmDbStorage.addFilm(createFilmWithAllParameters());
+        Film filmFromDb2 = filmDbStorage.addFilm(createFilmWithAllParameters());
         User userFromDb = userDbStorage.addUser(createUser());
-        filmDbStorage.addLike(filmFromDb.getId(), userFromDb.getId());
+        filmDbStorage.addScore(filmFromDb1.getId(), userFromDb.getId(), 2, false);
+        filmDbStorage.addScore(filmFromDb2.getId(), userFromDb.getId(), 8, true);
+        filmFromDb1.setScore(2.0);
+        filmFromDb2.setScore(8.0);
 
         // when
         Collection<Film> popularByYear = filmDbStorage.getPopularByYear(10, "1999");
@@ -178,7 +130,7 @@ class FilmDbStorageTest {
         assertThat(popularByYear)
                 .isNotNull()
                 .usingRecursiveComparison()
-                .isEqualTo(List.of(filmFromDb));
+                .isEqualTo(List.of(filmFromDb2, filmFromDb1));
     }
 
     @Test
@@ -186,7 +138,7 @@ class FilmDbStorageTest {
         // given
         Film filmFromDb = filmDbStorage.addFilm(createFilmWithAllParameters());
         User userFromDb = userDbStorage.addUser(createUser());
-        filmDbStorage.addLike(filmFromDb.getId(), userFromDb.getId());
+        filmDbStorage.addScore(filmFromDb.getId(), userFromDb.getId(), 2, false);
 
         // when
         Collection<Film> popularByYear = filmDbStorage.getPopularByYear(10, "2000");
@@ -201,9 +153,13 @@ class FilmDbStorageTest {
     @Test
     public void getPopularByGenreAndYear() {
         // given
-        Film filmFromDb = filmDbStorage.addFilm(createFilmWithAllParameters());
+        Film filmFromDb1 = filmDbStorage.addFilm(createFilmWithAllParameters());
+        Film filmFromDb2 = filmDbStorage.addFilm(createFilmWithAllParameters());
         User userFromDb = userDbStorage.addUser(createUser());
-        filmDbStorage.addLike(filmFromDb.getId(), userFromDb.getId());
+        filmDbStorage.addScore(filmFromDb1.getId(), userFromDb.getId(), 2, false);
+        filmDbStorage.addScore(filmFromDb2.getId(), userFromDb.getId(), 8, true);
+        filmFromDb1.setScore(2.0);
+        filmFromDb2.setScore(8.0);
 
         // when
         Collection<Film> popularByGenreAndYear =
@@ -213,7 +169,7 @@ class FilmDbStorageTest {
         assertThat(popularByGenreAndYear)
                 .isNotNull()
                 .usingRecursiveComparison()
-                .isEqualTo(List.of(filmFromDb));
+                .isEqualTo(List.of(filmFromDb2, filmFromDb1));
     }
 
     @Test
@@ -221,7 +177,7 @@ class FilmDbStorageTest {
         // given
         Film filmFromDb = filmDbStorage.addFilm(createFilmWithAllParameters());
         User userFromDb = userDbStorage.addUser(createUser());
-        filmDbStorage.addLike(filmFromDb.getId(), userFromDb.getId());
+        filmDbStorage.addScore(filmFromDb.getId(), userFromDb.getId(), 2, false);
 
         // when
         Collection<Film> popularByGenreAndYearWithNotExistGenre =
@@ -246,6 +202,7 @@ class FilmDbStorageTest {
 
     @Test
     public void userRecommendations() {
+        // given
         Film film_1 = createDefaultFilm();
         Film film_2 = film_1.toBuilder()
                 .name("testFilm 2")
@@ -291,20 +248,29 @@ class FilmDbStorageTest {
         user_2 = userDbStorage.addUser(user_2);
         user_3 = userDbStorage.addUser(user_3);
 
-        filmDbStorage.addLike(film_1.getId(), user_1.getId());
-        filmDbStorage.addLike(film_2.getId(), user_1.getId());
+        // when
+        filmDbStorage.addScore(film_1.getId(), user_1.getId(), 7, true);
+        filmDbStorage.addScore(film_2.getId(), user_1.getId(), 6, true);
 
-        filmDbStorage.addLike(film_1.getId(), user_2.getId());
-        filmDbStorage.addLike(film_2.getId(), user_2.getId());
-        filmDbStorage.addLike(film_3.getId(), user_2.getId());
+        filmDbStorage.addScore(film_1.getId(), user_2.getId(), 5, false);
+        filmDbStorage.addScore(film_2.getId(), user_2.getId(), 8, true);
+        filmDbStorage.addScore(film_3.getId(), user_2.getId(), 6, true);
 
-        filmDbStorage.addLike(film_3.getId(), user_3.getId());
+        filmDbStorage.addScore(film_3.getId(), user_3.getId(), 10, true);
+
+        film_2 = filmDbStorage.getFilmById(film_2.getId());
+        film_3 = filmDbStorage.getFilmById(film_3.getId());
+
+        // film 1 - avg score = (7 + 5) / 2 = 6
+        // film 2 - avg score = (6 + 8) / 2 = 7
+        // film 3 - avg score = (6 + 6 + 10) / 3 = 7.33
 
         Collection<Film> recommendedFilmsForUser3 = filmDbStorage.getUserRecommendations(user_3.getId());
 
+        // then
         assertFalse(recommendedFilmsForUser3.isEmpty());
-        assertTrue(recommendedFilmsForUser3.containsAll(List.of(film_1, film_2)));
-        assertEquals(2, recommendedFilmsForUser3.size());
+        assertTrue(recommendedFilmsForUser3.contains(film_2));
+        assertEquals(1, recommendedFilmsForUser3.size());
 
         Collection<Film> recommendedFilmsForUser1 = filmDbStorage.getUserRecommendations(user_1.getId());
 
@@ -353,14 +319,17 @@ class FilmDbStorageTest {
         user_1 = userDbStorage.addUser(user_1);
         user_2 = userDbStorage.addUser(user_2);
 
-        filmDbStorage.addLike(film_1.getId(), user_1.getId());
-        filmDbStorage.addLike(film_2.getId(), user_1.getId());
-        filmDbStorage.addLike(film_3.getId(), user_1.getId());
+        filmDbStorage.addScore(film_1.getId(), user_1.getId(), 5, false);
+        filmDbStorage.addScore(film_2.getId(), user_1.getId(), 8, true);
+        filmDbStorage.addScore(film_3.getId(), user_1.getId(), 6, true);
 
-        filmDbStorage.addLike(film_1.getId(), user_2.getId());
-        filmDbStorage.addLike(film_3.getId(), user_2.getId());
+        filmDbStorage.addScore(film_1.getId(), user_2.getId(), 7, true);
+        filmDbStorage.addScore(film_3.getId(), user_2.getId(), 6, true);
 
         Collection<Film> commonFilms = filmDbStorage.findCommonFilms(user_1.getId(), user_2.getId());
+
+        film_1.setScore((5 + 7) / 2.0);
+        film_3.setScore((6 + 6) / 2.0);
 
         assertFalse(commonFilms.isEmpty());
         assertTrue(commonFilms.containsAll(List.of(film_1, film_3)));
@@ -516,85 +485,6 @@ class FilmDbStorageTest {
         double filmScore = filmDbStorage.getFilmById(addedFilmId).getScore();
         double result = 0;
         assertEquals(result, filmScore, "Рейтинги фильма не равны.");
-    }
-
-    @Test
-    void getRecommendationsByScore() {
-        // given
-        Film film_1 = createDefaultFilm();
-        Film film_2 = film_1.toBuilder()
-                .name("testFilm 2")
-                .description("testFilm 2")
-                .releaseDate(LocalDate.of(2001, 2, 2))
-                .duration(122)
-                .mpa(Mpa.builder()
-                        .id(2)
-                        .build())
-                .build();
-        Film film_3 = film_1.toBuilder()
-                .name("testFilm 3")
-                .description("testFilm 3")
-                .releaseDate(LocalDate.of(2002, 3, 3))
-                .duration(123)
-                .mpa(Mpa.builder()
-                        .id(3)
-                        .build())
-                .build();
-        User user_1 = User.builder()
-                .email("user_1@mail.ru")
-                .login("user_1@mail.ru")
-                .name("User 1")
-                .birthday(LocalDate.of(2005, 8, 15))
-                .build();
-        User user_2 = user_1.toBuilder()
-                .email("user_2@mail.ru")
-                .login("user_2@mail.ru")
-                .name("User 2")
-                .birthday(LocalDate.of(2006, 9, 16))
-                .build();
-        User user_3 = user_1.toBuilder()
-                .email("user_3@mail.ru")
-                .login("user_3@mail.ru")
-                .name("User 3")
-                .birthday(LocalDate.of(2007, 9, 17))
-                .build();
-
-        film_1 = filmDbStorage.addFilm(film_1);
-        film_2 = filmDbStorage.addFilm(film_2);
-        film_3 = filmDbStorage.addFilm(film_3);
-        user_1 = userDbStorage.addUser(user_1);
-        user_2 = userDbStorage.addUser(user_2);
-        user_3 = userDbStorage.addUser(user_3);
-
-        // when
-        filmDbStorage.addScore(film_1.getId(), user_1.getId(), 7, true);
-        filmDbStorage.addScore(film_2.getId(), user_1.getId(), 6, true);
-
-        filmDbStorage.addScore(film_1.getId(), user_2.getId(), 5, false);
-        filmDbStorage.addScore(film_2.getId(), user_2.getId(), 8, true);
-        filmDbStorage.addScore(film_3.getId(), user_2.getId(), 6, true);
-
-        filmDbStorage.addScore(film_3.getId(), user_3.getId(), 10, true);
-
-        film_2 = filmDbStorage.getFilmById(film_2.getId());
-        film_3 = filmDbStorage.getFilmById(film_3.getId());
-
-        // film 1 - avg score = (7 + 5) / 2 = 6
-        // film 2 - avg score = (6 + 8) / 2 = 7
-        // film 3 - avg score = (6 + 6 + 10) / 3 = 7.33
-
-        Collection<Film> recommendedFilmsForUser3 = filmDbStorage.getUserRecommendationsByScore(user_3.getId());
-
-        // then
-        assertFalse(recommendedFilmsForUser3.isEmpty());
-        assertTrue(recommendedFilmsForUser3.contains(film_2));
-        assertEquals(1, recommendedFilmsForUser3.size());
-
-        Collection<Film> recommendedFilmsForUser1 = filmDbStorage.getUserRecommendationsByScore(user_1.getId());
-
-        assertFalse(recommendedFilmsForUser1.isEmpty());
-        assertTrue(recommendedFilmsForUser1.contains(film_3));
-        assertEquals(1, recommendedFilmsForUser1.size());
     }
 
     private Film createDefaultFilm() {

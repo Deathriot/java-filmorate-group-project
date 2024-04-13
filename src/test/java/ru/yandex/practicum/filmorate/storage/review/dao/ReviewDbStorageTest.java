@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.transaction.annotation.Transactional;
 import ru.yandex.practicum.filmorate.exception.IncorrectParameterException;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.model.Film;
@@ -29,6 +30,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 @AutoConfigureTestDatabase
 @RequiredArgsConstructor(onConstructor_ = @Autowired)
 @DirtiesContext(classMode = DirtiesContext.ClassMode.BEFORE_EACH_TEST_METHOD)
+@Transactional
 public class ReviewDbStorageTest {
     private final ReviewService service;
     private final UserStorage userStorage;
@@ -154,22 +156,45 @@ public class ReviewDbStorageTest {
 
     @Test
     public void getAllTest() {
-        Review review1 = service.createReview(review); //1
-        Review review2 = service.createReview(review); //3
-        Review review3 = service.createReview(review); //2
+        // given
+        Review review1 = Review.builder()
+                .content("Dis film is shieeet")
+                .userId(1)
+                .filmId(1)
+                .isPositive(false)
+                .build();
+        review1 = service.createReview(review1); //1
 
-        service.putLike(1, 1);
-        service.putDislike(2, 1);
+        Review review2 = Review.builder()
+                .content("Dis film is shieeet")
+                .userId(1)
+                .filmId(1)
+                .isPositive(false)
+                .build();
+        review2 = service.createReview(review2); //3
+
+        Review review3 = Review.builder()
+                .content("Dis film is shieeet")
+                .userId(1)
+                .filmId(1)
+                .isPositive(false)
+                .build();
+        review3 = service.createReview(review3); //2
+
+        service.putLike(review1.getReviewId(), 1);
+        service.putDislike(review2.getReviewId(), 1);
         review1 = service.getReviewById(review1.getReviewId());
         review2 = service.getReviewById(review2.getReviewId());
 
+        // when
         Collection<Review> reviews = service.getAllReviewsOfFilm(null, 10);
         List<Review> reviewList = new ArrayList<>(reviews);
 
-        assertEquals(reviewList.size(), 3);
-        assertEquals(reviewList.get(0), review1);
-        assertEquals(reviewList.get(1), review3);
-        assertEquals(reviewList.get(2), review2);
+        // then
+        assertEquals(3, reviewList.size());
+        assertEquals(review1, reviewList.get(0));
+        assertEquals(review3, reviewList.get(1));
+        assertEquals(review2, reviewList.get(2));
     }
 
     @Test

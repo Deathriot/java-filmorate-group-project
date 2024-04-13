@@ -51,14 +51,14 @@ public class FilmController {
         filmService.deleteFilm(id);
     }
 
-    @PutMapping("/{id}/like/{userId}")
-    public void addLike(@PathVariable Integer id, @PathVariable Integer userId) {
-        filmService.addLike(id, userId);
+    @PutMapping("/{filmId}/score/{userId}/{score}")
+    public void addScore(@PathVariable Integer filmId, @PathVariable Integer userId, @PathVariable Integer score) {
+        filmService.addScore(filmId, userId, score);
     }
 
-    @DeleteMapping("/{id}/like/{userId}")
-    public void deleteLike(@PathVariable Integer id, @PathVariable Integer userId) {
-        filmService.deleteLike(id, userId);
+    @DeleteMapping("/{id}/score/{userId}")
+    public void deleteScore(@PathVariable Integer id, @PathVariable Integer userId) {
+        filmService.deleteScore(id, userId);
     }
 
     @GetMapping("/director/{id}")
@@ -74,16 +74,6 @@ public class FilmController {
     @GetMapping("/search")
     public Collection<Film> findFilmsBy(@RequestParam String query, @RequestParam String by) {
         return filmService.getFilmsBy(query, by);
-    }
-
-    @PutMapping("/{filmId}/score/{userId}/{score}")
-    public void addScore(@PathVariable Integer filmId, @PathVariable Integer userId, @PathVariable Integer score) {
-        filmService.addScore(filmId, userId, score);
-    }
-
-    @DeleteMapping("{filmId}/score/{userId}")
-    public void deleteScore(@PathVariable Integer filmId, @PathVariable Integer userId) {
-        filmService.deleteScore(filmId, userId);
     }
 }
 

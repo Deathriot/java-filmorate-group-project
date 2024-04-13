@@ -17,9 +17,9 @@ public interface FilmService {
 
     Film updateFilm(Film film);
 
-    void addLike(Integer id, Integer userId);
+    void addScore(Integer id, Integer userId, Integer score);
 
-    void deleteLike(Integer id, Integer userId);
+    void deleteScore(Integer id, Integer userId);
 
     Collection<Film> getPopular(Integer count);
 
@@ -30,8 +30,4 @@ public interface FilmService {
     Collection<Film> findCommonFilms(Integer userId, Integer friendId);
 
     Collection<Film> getFilmsBy(String query, String by);
-
-    void addScore(Integer filmId, Integer userId, Integer score);
-
-    void deleteScore(Integer filmId, Integer userId);
 }
